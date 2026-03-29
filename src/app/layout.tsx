@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Tajawal } from "next/font/google";
 import "./globals.css";
 
@@ -13,14 +13,23 @@ export const metadata: Metadata = {
   description:
     "صمّم عطرك المخصص مع ORIX، احسب السعر مباشرة، وأرسل الطلب بسهولة.",
   icons: {
-    icon: [{ url: "/icon", type: "image/png" }],
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "ORIX",
   },
 };
 
-export const viewport = {
-  width: "device-width" as const,
+export const viewport: Viewport = {
+  width: "device-width",
   initialScale: 1,
-  viewportFit: "cover" as const,
+  maximumScale: 1,
+  viewportFit: "cover",
+  themeColor: "#D4A84B",
 };
 
 export default function RootLayout({
@@ -33,8 +42,7 @@ export default function RootLayout({
       <body
         className={`${tajawal.className} min-h-screen bg-[#faf8f5] antialiased text-stone-800`}
       >
-        <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(217,119,6,0.06),_transparent_50%)]" />
-        <div className="relative z-10">{children}</div>
+        {children}
       </body>
     </html>
   );

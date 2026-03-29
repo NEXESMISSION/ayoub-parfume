@@ -238,20 +238,20 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))] sm:py-10">
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-stone-900">ORIX — لوحة التحكم</h1>
-          <p className="text-sm text-stone-500">
-            الطلبات مجمّعة حسب الحالة · المنتجات (قارورة / مكوّنات)
+    <div className="mx-auto max-w-6xl px-3 py-6 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] sm:px-4 sm:py-10">
+      <div className="mb-6 flex flex-col gap-3 sm:mb-8 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold text-stone-900 sm:text-2xl">ORIX — لوحة التحكم</h1>
+          <p className="mt-0.5 text-xs text-stone-500 sm:text-sm">
+            الطلبات مجمّعة حسب الحالة · المنتجات
           </p>
         </div>
-        <Button variant="secondary" asChild>
+        <Button variant="secondary" size="sm" className="w-fit" asChild>
           <Link href="/build">الصفحة العامة</Link>
         </Button>
       </div>
 
-      <div className="mb-6 flex flex-wrap gap-2 border-b border-stone-200 pb-4">
+      <div className="mb-5 flex gap-2 overflow-x-auto border-b border-stone-200 pb-3 sm:mb-6 sm:pb-4">
         {(
           [
             ["orders", "الطلبات"],
@@ -264,7 +264,7 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
             type="button"
             onClick={() => setTab(id)}
             className={cn(
-              "rounded-full px-4 py-2 text-sm font-medium transition",
+              "shrink-0 rounded-full px-4 py-2 text-sm font-medium transition",
               tab === id
                 ? "bg-[#A67C2E] text-white shadow"
                 : "bg-stone-100 text-stone-600 hover:bg-stone-200"
@@ -305,71 +305,128 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                     </span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="overflow-x-auto">
-                  <table className="w-full min-w-[700px] border-separate border-spacing-0 text-sm">
-                    <thead>
-                      <tr className="border-b-2 border-stone-200 text-right text-stone-500">
-                        <th className="px-3 pb-3 pt-1 text-start font-medium">التاريخ</th>
-                        <th className="px-3 pb-3 pt-1 text-start font-medium">الهاتف</th>
-                        <th className="px-3 pb-3 pt-1 text-start font-medium">القارورة</th>
-                        <th className="px-3 pb-3 pt-1 text-start font-medium">المجموع</th>
-                        <th className="px-3 pb-3 pt-1 text-start font-medium">تغيير الحالة</th>
-                        <th className="px-3 pb-3 pt-1 text-start font-medium">إجراء</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {list.map((o) => (
-                        <tr
-                          key={o.id}
-                          className="border-b border-stone-100 transition-colors hover:bg-stone-50/60"
-                        >
-                          <td className="whitespace-nowrap px-3 py-3 text-stone-600" dir="ltr">
-                            {new Date(o.created_at).toLocaleString("ar-TN")}
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-3 font-medium text-stone-800" dir="ltr">
-                            {o.whatsapp_number ?? o.customer_name ?? "—"}
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-3 text-stone-700">
-                            {o.bottles?.name ?? "—"}
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-3 font-semibold tabular-nums text-stone-800" dir="ltr">
-                            {(o.total_price ?? 0).toFixed(2)} د.ت
-                          </td>
-                          <td className="px-3 py-3">
-                            <select
-                              className="rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-xs font-medium transition hover:border-stone-300"
-                              value={o.status}
-                              disabled={o.status === "cancelled"}
-                              onChange={(e) =>
-                                onStatusChange(
-                                  o.id,
-                                  e.target.value as OrderStatus
-                                )
-                              }
-                            >
-                              {ALL_STATUSES.map((s) => (
-                                <option key={s} value={s}>
-                                  {STATUS_AR[s]}
-                                </option>
-                              ))}
-                            </select>
-                          </td>
-                          <td className="px-3 py-3">
-                            {o.status !== "cancelled" && (
-                              <Button
-                                type="button"
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => onCancel(o.id)}
-                              >
-                                إلغاء
-                              </Button>
-                            )}
-                          </td>
+                <CardContent>
+                  {/* Desktop table */}
+                  <div className="hidden overflow-x-auto md:block">
+                    <table className="w-full min-w-[650px] border-separate border-spacing-0 text-sm">
+                      <thead>
+                        <tr className="border-b-2 border-stone-200 text-right text-stone-500">
+                          <th className="px-3 pb-3 pt-1 text-start font-medium">التاريخ</th>
+                          <th className="px-3 pb-3 pt-1 text-start font-medium">الهاتف</th>
+                          <th className="px-3 pb-3 pt-1 text-start font-medium">القارورة</th>
+                          <th className="px-3 pb-3 pt-1 text-start font-medium">المجموع</th>
+                          <th className="px-3 pb-3 pt-1 text-start font-medium">تغيير الحالة</th>
+                          <th className="px-3 pb-3 pt-1 text-start font-medium">إجراء</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {list.map((o) => (
+                          <tr
+                            key={o.id}
+                            className="border-b border-stone-100 transition-colors hover:bg-stone-50/60"
+                          >
+                            <td className="whitespace-nowrap px-3 py-3 text-stone-600" dir="ltr">
+                              {new Date(o.created_at).toLocaleString("ar-TN")}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-3 font-medium text-stone-800" dir="ltr">
+                              {o.whatsapp_number ?? o.customer_name ?? "—"}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-3 text-stone-700">
+                              {o.bottles?.name ?? "—"}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-3 font-semibold tabular-nums text-stone-800" dir="ltr">
+                              {(o.total_price ?? 0).toFixed(2)} د.ت
+                            </td>
+                            <td className="px-3 py-3">
+                              <select
+                                className="rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-xs font-medium transition hover:border-stone-300"
+                                value={o.status}
+                                disabled={o.status === "cancelled"}
+                                onChange={(e) =>
+                                  onStatusChange(
+                                    o.id,
+                                    e.target.value as OrderStatus
+                                  )
+                                }
+                              >
+                                {ALL_STATUSES.map((s) => (
+                                  <option key={s} value={s}>
+                                    {STATUS_AR[s]}
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
+                            <td className="px-3 py-3">
+                              {o.status !== "cancelled" && (
+                                <Button
+                                  type="button"
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => onCancel(o.id)}
+                                >
+                                  إلغاء
+                                </Button>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile card list */}
+                  <div className="space-y-3 md:hidden">
+                    {list.map((o) => (
+                      <div
+                        key={o.id}
+                        className="rounded-xl border border-stone-200 bg-white p-3.5 shadow-sm"
+                      >
+                        <div className="mb-2.5 flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="font-medium text-stone-800" dir="ltr">
+                              {o.whatsapp_number ?? o.customer_name ?? "—"}
+                            </p>
+                            <p className="mt-0.5 text-xs text-stone-500" dir="ltr">
+                              {new Date(o.created_at).toLocaleString("ar-TN")}
+                            </p>
+                          </div>
+                          <p className="shrink-0 text-sm font-bold tabular-nums text-stone-900" dir="ltr">
+                            {(o.total_price ?? 0).toFixed(2)} د.ت
+                          </p>
+                        </div>
+                        <p className="mb-3 text-xs text-stone-600">
+                          القارورة: <span className="font-medium">{o.bottles?.name ?? "—"}</span>
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <select
+                            className="min-w-0 flex-1 rounded-lg border border-stone-200 bg-white px-2.5 py-2 text-xs font-medium"
+                            value={o.status}
+                            disabled={o.status === "cancelled"}
+                            onChange={(e) =>
+                              onStatusChange(o.id, e.target.value as OrderStatus)
+                            }
+                          >
+                            {ALL_STATUSES.map((s) => (
+                              <option key={s} value={s}>
+                                {STATUS_AR[s]}
+                              </option>
+                            ))}
+                          </select>
+                          {o.status !== "cancelled" && (
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              className="shrink-0"
+                              onClick={() => onCancel(o.id)}
+                            >
+                              إلغاء
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             );
