@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { PrefetchStoreHubAndCategories } from "@/components/store/prefetch-store-navigation";
 
 export default function Home() {
   return (
@@ -265,6 +266,8 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      <PrefetchStoreHubAndCategories />
     </main>
   );
 }

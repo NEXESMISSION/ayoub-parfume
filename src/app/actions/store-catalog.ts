@@ -2,7 +2,8 @@
 
 import { createClient } from "@/lib/supabase/server";
 import type { StoreCategory } from "@/types";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { STORE_PRODUCTS_CACHE_TAG } from "@/lib/store-data";
 
 function parseImageUrls(raw: string): string[] {
   return raw
@@ -13,6 +14,7 @@ function parseImageUrls(raw: string): string[] {
 
 function revalidateStore() {
   try {
+    revalidateTag(STORE_PRODUCTS_CACHE_TAG);
     revalidatePath("/store", "layout");
     revalidatePath("/admin");
   } catch {

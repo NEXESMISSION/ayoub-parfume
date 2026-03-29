@@ -1,5 +1,8 @@
-import { createClient } from "@/lib/supabase/server";
+import { unstable_cache } from "next/cache";
+import { createPublicSupabase } from "@/lib/supabase/public-server";
 import type { StoreCategory, StoreProduct } from "@/types";
+
+export const STORE_PRODUCTS_CACHE_TAG = "store-products";
 
 function normalizeProduct(row: Record<string, unknown>): StoreProduct {
   const urls = row.image_urls;
@@ -16,10 +19,10 @@ function normalizeProduct(row: Record<string, unknown>): StoreProduct {
   };
 }
 
-export async function fetchStoreProducts(
+async function fetchStoreProductsUncached(
   category: StoreCategory,
 ): Promise<StoreProduct[]> {
-  const supabase = await createClient();
+  const supabase = createPublicSupabase();
   if (!supabase) return [];
   const { data, error } = await supabase
     .from("store_products")
@@ -32,10 +35,22 @@ export async function fetchStoreProducts(
   return data.map((row) => normalizeProduct(row as Record<string, unknown>));
 }
 
-export async function fetchStoreProductById(
+/** يُخبَّأ على الخادم ~٢ دقيقة — تنقل أسرع بين صفحات المتجر */
+export function fetchStoreProducts(category: StoreCategory): Promise<StoreProduct[]> {
+  return unstable_cache(
+    () => fetchStoreProductsUncached(category),
+    ["store-products-list", category],
+    {
+      revalidate: 120,
+      tags: [STORE_PRODUCTS_CACHE_TAG],
+    },
+  )();
+}
+
+async function fetchStoreProductByIdUncached(
   id: string,
 ): Promise<StoreProduct | null> {
-  const supabase = await createClient();
+  const supabase = createPublicSupabase();
   if (!supabase) return null;
   const { data, error } = await supabase
     .from("store_products")
@@ -45,4 +60,15 @@ export async function fetchStoreProductById(
     .maybeSingle();
   if (error || !data) return null;
   return normalizeProduct(data as Record<string, unknown>);
+}
+
+export function fetchStoreProductById(id: string): Promise<StoreProduct | null> {
+  return unstable_cache(
+    () => fetchStoreProductByIdUncached(id),
+    ["store-product", id],
+    {
+      revalidate: 120,
+      tags: [STORE_PRODUCTS_CACHE_TAG, `store-product-${id}`],
+    },
+  )();
 }

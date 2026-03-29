@@ -7,6 +7,7 @@ import {
   categoryInfo,
 } from "@/lib/store-categories";
 import { fetchStoreProducts } from "@/lib/store-data";
+import { PrefetchStoreProductIds } from "@/components/store/prefetch-store-navigation";
 import type { StoreProduct } from "@/types";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -37,6 +38,9 @@ export default async function StoreCategoryPage({ params }: Props) {
 
   return (
     <main className="min-h-[100dvh] bg-[#faf8f5]">
+      {products.length > 0 && (
+        <PrefetchStoreProductIds productIds={products.map((p) => p.id)} />
+      )}
       <div
         className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(ellipse_70%_45%_at_50%_0%,rgba(212,168,75,0.08),transparent),radial-gradient(ellipse_50%_35%_at_100%_60%,rgba(143,107,40,0.04),transparent)]"
         aria-hidden
@@ -46,6 +50,7 @@ export default async function StoreCategoryPage({ params }: Props) {
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <Link
             href="/store"
+            prefetch
             className="text-xs font-semibold text-[#8F6B28] transition hover:text-[#A67C2E] sm:text-sm"
           >
             ← الفئات
@@ -80,6 +85,7 @@ export default async function StoreCategoryPage({ params }: Props) {
             </p>
             <Link
               href="/store"
+              prefetch
               className="mt-4 text-sm font-semibold text-[#8F6B28] underline-offset-4 hover:underline"
             >
               العودة إلى الفئات
@@ -93,6 +99,7 @@ export default async function StoreCategoryPage({ params }: Props) {
                 <li key={p.id} className="min-w-0">
                   <Link
                     href={`/store/product/${p.id}`}
+                    prefetch
                     className="group flex h-full flex-col overflow-hidden rounded-2xl border border-stone-200/90 bg-white shadow-[0_2px_16px_-6px_rgba(28,25,23,0.1)] ring-1 ring-stone-900/[0.02] transition duration-300 hover:-translate-y-1 hover:border-[#D4A84B]/45 hover:shadow-[0_16px_40px_-12px_rgba(143,107,40,0.22)]"
                   >
                     <div className="relative aspect-[1/1.08] w-full overflow-hidden bg-gradient-to-b from-stone-100 to-stone-50">

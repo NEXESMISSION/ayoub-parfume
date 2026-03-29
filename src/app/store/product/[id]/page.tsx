@@ -44,6 +44,7 @@ export default async function StoreProductPage({ params }: Props) {
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-3 sm:px-6">
           <Link
             href={`/store/${backSlug}`}
+            prefetch
             className="shrink-0 text-xs font-semibold text-[#8F6B28] transition hover:text-[#A67C2E] sm:text-sm"
           >
             ← رجوع
@@ -53,6 +54,7 @@ export default async function StoreProductPage({ params }: Props) {
           </span>
           <Link
             href="/store"
+            prefetch
             className="shrink-0 text-xs font-medium text-stone-600 transition hover:text-stone-900 sm:text-sm"
           >
             الفئات
@@ -66,7 +68,7 @@ export default async function StoreProductPage({ params }: Props) {
           className="mb-6 flex flex-wrap items-center gap-1.5 text-[0.7rem] text-stone-500 sm:text-xs"
           aria-label="مسار التنقل"
         >
-          <Link href="/store" className="font-medium hover:text-[#8F6B28]">
+          <Link href="/store" prefetch className="font-medium hover:text-[#8F6B28]">
             المتجر
           </Link>
           <span className="text-stone-300" aria-hidden>
@@ -74,6 +76,7 @@ export default async function StoreProductPage({ params }: Props) {
           </span>
           <Link
             href={`/store/${backSlug}`}
+            prefetch
             className="font-medium hover:text-[#8F6B28]"
           >
             {cat?.title ?? "الفئة"}

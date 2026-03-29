@@ -36,6 +36,15 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns,
   },
+  experimental: {
+    /** كاش أطول للتنقّل العميل — يقلّل إعادة جلب واجهة RSC عند التنقّل */
+    staleTimes: {
+      dynamic: 90,
+      static: 300,
+    },
+    /** إظهار الكاش السابق فوراً أثناء التنقّل عندما يكون متاحاً */
+    optimisticClientCache: true,
+  },
 };
 
 export default nextConfig;
