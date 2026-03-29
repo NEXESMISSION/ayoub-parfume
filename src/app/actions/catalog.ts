@@ -78,7 +78,6 @@ export async function deleteBottlePermanent(id: string) {
 export async function saveIngredient(input: {
   id?: string;
   name: string;
-  slug?: string;
   category: IngredientCategory;
   price_per_gram: number;
   intensity_factor: number;
@@ -88,7 +87,7 @@ export async function saveIngredient(input: {
   const supabase = await createClient();
   if (!supabase) return { ok: false as const, error: "قاعدة البيانات غير متصلة" };
 
-  const slug = (input.slug?.trim() || slugify(input.name)).slice(0, 120);
+  const slug = slugify(input.name).slice(0, 120);
 
   const row = {
     name: input.name.trim() || "بدون اسم",

@@ -20,7 +20,7 @@ create table if not exists public.ingredients (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   slug text unique,
-  category text not null check (category in ('top','heart','base')),
+  category text not null check (category in ('women','man','kids')),
   price_per_gram numeric(10,2) not null,
   intensity_factor numeric(5,2) default 1,
   image_url text,

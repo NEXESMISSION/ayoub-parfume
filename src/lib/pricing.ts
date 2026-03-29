@@ -36,9 +36,9 @@ export function computeTotals(
   };
 }
 
-/** Target pyramid: top 30%, heart 50%, base 20% by gram share */
+/** حصة كل فئة جمهور من إجمالي الغرامات (للتحليلات لاحقاً) */
 export function scentBalance(recipe: RecipeItem[], map: Record<string, Ingredient | undefined>) {
-  const byCat = { top: 0, heart: 0, base: 0 };
+  const byCat = { women: 0, man: 0, kids: 0 };
   let total = 0;
   for (const r of recipe) {
     const ing = map[r.ingredientId];
@@ -47,14 +47,12 @@ export function scentBalance(recipe: RecipeItem[], map: Record<string, Ingredien
     total += r.grams;
   }
   if (total === 0) {
-    return { top: 0, heart: 0, base: 0, deviation: 0 };
+    return { women: 0, man: 0, kids: 0, deviation: 0 };
   }
-  const pTop = (byCat.top / total) * 100;
-  const pHeart = (byCat.heart / total) * 100;
-  const pBase = (byCat.base / total) * 100;
-  const deviation =
-    Math.abs(pTop - 30) * 0.3 +
-    Math.abs(pHeart - 50) * 0.5 +
-    Math.abs(pBase - 20) * 0.2;
-  return { top: pTop, heart: pHeart, base: pBase, deviation };
+  return {
+    women: (byCat.women / total) * 100,
+    man: (byCat.man / total) * 100,
+    kids: (byCat.kids / total) * 100,
+    deviation: 0,
+  };
 }

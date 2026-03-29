@@ -11,12 +11,18 @@ import {
   saveBottle,
   saveIngredient,
 } from "@/app/actions/catalog";
+import {
+  deactivateStoreProduct,
+  saveStoreProduct,
+} from "@/app/actions/store-catalog";
 import type {
   Bottle,
   Ingredient,
   IngredientCategory,
   OrderRow,
   OrderStatus,
+  StoreCategory,
+  StoreProduct,
 } from "@/types";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,11 +40,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { INGREDIENT_CATEGORY_LABELS } from "@/lib/ingredient-category";
 
-type Tab = "orders" | "bottles" | "ingredients";
+type Tab = "orders" | "bottles" | "ingredients" | "store";
 
 type OrderWithBottle = OrderRow & {
   bottles?: { name: string | null } | null;
+  store_products?: { name: string | null } | null;
 };
 
 const STATUS_AR: Record<OrderStatus, string> = {
@@ -75,12 +83,15 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
   const [orders, setOrders] = useState<OrderWithBottle[]>([]);
   const [bottles, setBottles] = useState<Bottle[]>([]);
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
+  const [storeProducts, setStoreProducts] = useState<StoreProduct[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [bottleForm, setBottleForm] = useState<Partial<Bottle> | null>(null);
   const [ingForm, setIngForm] = useState<Partial<Ingredient> | null>(null);
+  const [storeForm, setStoreForm] = useState<Partial<StoreProduct> & { image_urls_raw?: string } | null>(null);
   const [savingBottle, setSavingBottle] = useState(false);
   const [savingIng, setSavingIng] = useState(false);
+  const [savingStore, setSavingStore] = useState(false);
   const newBottleLock = useRef(false);
 
   const bottlesUnique = useMemo(() => {
@@ -110,7 +121,7 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
     if (!supabase) return;
     const { data } = await supabase
       .from("orders")
-      .select("*, bottles(name)")
+      .select("*, bottles(name), store_products(name)")
       .order("created_at", { ascending: false });
     setOrders((data as OrderWithBottle[]) ?? []);
   }, [hasSupabase]);
@@ -137,11 +148,28 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
     setIngredients((data as Ingredient[]) ?? []);
   }, [hasSupabase]);
 
+  const loadStoreProducts = useCallback(async () => {
+    if (!hasSupabase) return;
+    const supabase = createClient();
+    if (!supabase) return;
+    const { data } = await supabase
+      .from("store_products")
+      .select("*")
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: false });
+    setStoreProducts((data as StoreProduct[]) ?? []);
+  }, [hasSupabase]);
+
   const refresh = useCallback(async () => {
     setLoading(true);
-    await Promise.all([loadOrders(), loadBottles(), loadIngredients()]);
+    await Promise.all([
+      loadOrders(),
+      loadBottles(),
+      loadIngredients(),
+      loadStoreProducts(),
+    ]);
     setLoading(false);
-  }, [loadOrders, loadBottles, loadIngredients]);
+  }, [loadOrders, loadBottles, loadIngredients, loadStoreProducts]);
 
   useEffect(() => {
     void refresh();
@@ -201,8 +229,7 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
       const res = await saveIngredient({
         id: ingForm.id,
         name: String(ingForm.name ?? ""),
-        slug: ingForm.slug ?? undefined,
-        category: (ingForm.category ?? "heart") as IngredientCategory,
+        category: (ingForm.category ?? "women") as IngredientCategory,
         price_per_gram: Number(ingForm.price_per_gram ?? 0),
         intensity_factor: Number(ingForm.intensity_factor ?? 1),
         image_url: String(ingForm.image_url ?? ""),
@@ -214,6 +241,29 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
       } else alert(res.error);
     } finally {
       setSavingIng(false);
+    }
+  }
+
+  async function submitStoreProduct() {
+    if (!storeForm || savingStore) return;
+    setSavingStore(true);
+    try {
+      const res = await saveStoreProduct({
+        id: storeForm.id,
+        name: String(storeForm.name ?? ""),
+        description: String(storeForm.description ?? ""),
+        price: Number(storeForm.price ?? 0),
+        category: (storeForm.category ?? "original_bottle") as StoreCategory,
+        image_urls_raw: String(storeForm.image_urls_raw ?? ""),
+        sort_order: Number(storeForm.sort_order ?? 0),
+        is_active: storeForm.is_active !== false,
+      });
+      if (res.ok) {
+        setStoreForm(null);
+        void loadStoreProducts();
+      } else alert(res.error);
+    } finally {
+      setSavingStore(false);
     }
   }
 
@@ -246,9 +296,14 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
             الطلبات مجمّعة حسب الحالة · المنتجات
           </p>
         </div>
-        <Button variant="secondary" size="sm" className="w-fit" asChild>
-          <Link href="/build">الصفحة العامة</Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" size="sm" className="w-fit" asChild>
+            <Link href="/build">البناء</Link>
+          </Button>
+          <Button variant="secondary" size="sm" className="w-fit" asChild>
+            <Link href="/store">المتجر</Link>
+          </Button>
+        </div>
       </div>
 
       <div className="mb-5 flex gap-2 overflow-x-auto border-b border-stone-200 pb-3 sm:mb-6 sm:pb-4">
@@ -257,6 +312,7 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
             ["orders", "الطلبات"],
             ["bottles", "القوارير"],
             ["ingredients", "المكوّنات"],
+            ["store", "المتجر"],
           ] as const
         ).map(([id, label]) => (
           <button
@@ -308,12 +364,13 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                 <CardContent>
                   {/* Desktop table */}
                   <div className="hidden overflow-x-auto md:block">
-                    <table className="w-full min-w-[650px] border-separate border-spacing-0 text-sm">
+                    <table className="w-full min-w-[820px] border-separate border-spacing-0 text-sm">
                       <thead>
                         <tr className="border-b-2 border-stone-200 text-right text-stone-500">
                           <th className="px-3 pb-3 pt-1 text-start font-medium">التاريخ</th>
                           <th className="px-3 pb-3 pt-1 text-start font-medium">الهاتف</th>
-                          <th className="px-3 pb-3 pt-1 text-start font-medium">القارورة</th>
+                          <th className="px-3 pb-3 pt-1 text-start font-medium">النوع / المنتج</th>
+                          <th className="px-3 pb-3 pt-1 text-start font-medium">العنوان</th>
                           <th className="px-3 pb-3 pt-1 text-start font-medium">المجموع</th>
                           <th className="px-3 pb-3 pt-1 text-start font-medium">تغيير الحالة</th>
                           <th className="px-3 pb-3 pt-1 text-start font-medium">إجراء</th>
@@ -331,8 +388,20 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                             <td className="whitespace-nowrap px-3 py-3 font-medium text-stone-800" dir="ltr">
                               {o.whatsapp_number ?? o.customer_name ?? "—"}
                             </td>
-                            <td className="whitespace-nowrap px-3 py-3 text-stone-700">
-                              {o.bottles?.name ?? "—"}
+                            <td className="max-w-[140px] px-3 py-3 text-stone-700">
+                              <span className="block text-[10px] font-medium text-stone-400">
+                                {(o.order_kind ?? "custom") === "store"
+                                  ? "متجر"
+                                  : "مخصّص"}
+                              </span>
+                              <span className="line-clamp-2">
+                                {(o.order_kind ?? "custom") === "store"
+                                  ? (o.store_products?.name ?? "—")
+                                  : (o.bottles?.name ?? "—")}
+                              </span>
+                            </td>
+                            <td className="max-w-[160px] px-3 py-3 text-xs text-stone-600">
+                              <span className="line-clamp-3">{o.delivery_address ?? "—"}</span>
                             </td>
                             <td className="whitespace-nowrap px-3 py-3 font-semibold tabular-nums text-stone-800" dir="ltr">
                               {(o.total_price ?? 0).toFixed(2)} د.ت
@@ -394,9 +463,22 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                             {(o.total_price ?? 0).toFixed(2)} د.ت
                           </p>
                         </div>
-                        <p className="mb-3 text-xs text-stone-600">
-                          القارورة: <span className="font-medium">{o.bottles?.name ?? "—"}</span>
+                        <p className="mb-2 text-xs text-stone-600">
+                          {(o.order_kind ?? "custom") === "store"
+                            ? "منتج"
+                            : "قارورة"}
+                          :{" "}
+                          <span className="font-medium">
+                            {(o.order_kind ?? "custom") === "store"
+                              ? (o.store_products?.name ?? "—")
+                              : (o.bottles?.name ?? "—")}
+                          </span>
                         </p>
+                        {o.delivery_address && (
+                          <p className="mb-3 line-clamp-3 text-xs text-stone-500">
+                            العنوان: {o.delivery_address}
+                          </p>
+                        )}
                         <div className="flex items-center gap-2">
                           <select
                             className="min-w-0 flex-1 rounded-lg border border-stone-200 bg-white px-2.5 py-2 text-xs font-medium"
@@ -506,6 +588,75 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
         </div>
       )}
 
+      {tab === "store" && (
+        <div className="space-y-4">
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              onClick={() => {
+                if (storeForm) return;
+                setStoreForm({
+                  name: "",
+                  description: "",
+                  price: 0,
+                  category: "original_bottle",
+                  image_urls_raw: "",
+                  sort_order: 0,
+                  is_active: true,
+                });
+              }}
+            >
+              + منتج متجر
+            </Button>
+          </div>
+          <div className="grid gap-3">
+            {storeProducts.map((p) => (
+              <Card key={p.id}>
+                <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="font-semibold text-stone-900">{p.name}</p>
+                    <p className="text-xs text-stone-500">
+                      {p.category} · {Number(p.price).toFixed(2)} د.ت ·{" "}
+                      {p.is_active ? "ظاهر" : "مخفي"} · ترتيب {p.sort_order}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() =>
+                        setStoreForm({
+                          ...p,
+                          price: Number(p.price),
+                          image_urls_raw: (p.image_urls ?? []).join("\n"),
+                          sort_order: p.sort_order ?? 0,
+                        })
+                      }
+                    >
+                      تعديل
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={async () => {
+                        if (!confirm("إخفاء هذا المنتج من المتجر؟")) return;
+                        const r = await deactivateStoreProduct(p.id);
+                        if (r.ok) void loadStoreProducts();
+                        else alert(r.error);
+                      }}
+                    >
+                      إخفاء
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
       {tab === "ingredients" && (
         <div className="space-y-4">
           <div className="flex justify-end">
@@ -515,8 +666,7 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                 if (ingForm) return;
                 setIngForm({
                   name: "",
-                  slug: "",
-                  category: "heart",
+                  category: "women",
                   price_per_gram: 0,
                   intensity_factor: 1,
                   image_url: "",
@@ -534,7 +684,8 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                   <div>
                     <p className="font-semibold text-stone-900">{ing.name}</p>
                     <p className="text-xs text-stone-500">
-                      {ing.category} · {ing.price_per_gram} د.ت/غ ·{" "}
+                      {INGREDIENT_CATEGORY_LABELS[ing.category]} ·{" "}
+                      {ing.price_per_gram} د.ت/غ ·{" "}
                       {ing.is_active ? "ظاهر" : "مخفي"}
                     </p>
                   </div>
@@ -680,21 +831,10 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                 />
               </div>
               <div className="space-y-1">
-                <Label>المعرّف (slug)</Label>
-                <Input
-                  dir="ltr"
-                  value={ingForm.slug ?? ""}
-                  onChange={(e) =>
-                    setIngForm({ ...ingForm, slug: e.target.value })
-                  }
-                  placeholder="اختياري"
-                />
-              </div>
-              <div className="space-y-1">
                 <Label>الفئة</Label>
                 <select
                   className="flex h-10 w-full rounded-xl border border-stone-200 bg-white px-3 text-sm"
-                  value={ingForm.category ?? "heart"}
+                  value={ingForm.category ?? "women"}
                   onChange={(e) =>
                     setIngForm({
                       ...ingForm,
@@ -702,9 +842,9 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                     })
                   }
                 >
-                  <option value="top">علوي</option>
-                  <option value="heart">قلب</option>
-                  <option value="base">قاعدة</option>
+                  <option value="women">نساء</option>
+                  <option value="man">رجال</option>
+                  <option value="kids">أطفال</option>
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -766,6 +906,131 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                 onClick={submitIngredient}
               >
                 {savingIng ? "جاري الحفظ…" : "حفظ"}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        key={
+          storeForm?.id ??
+          (storeForm && !storeForm.id ? "new-store" : "closed-store")
+        }
+        open={!!storeForm}
+        onOpenChange={(o) => !o && setStoreForm(null)}
+      >
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {storeForm?.id ? "تعديل منتج المتجر" : "منتج متجر جديد"}
+            </DialogTitle>
+          </DialogHeader>
+          {storeForm && (
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <Label>الاسم</Label>
+                <Input
+                  value={storeForm.name ?? ""}
+                  onChange={(e) =>
+                    setStoreForm({ ...storeForm, name: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>الوصف</Label>
+                <textarea
+                  className="flex min-h-[72px] w-full resize-y rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C5973E]/40"
+                  dir="rtl"
+                  value={storeForm.description ?? ""}
+                  onChange={(e) =>
+                    setStoreForm({ ...storeForm, description: e.target.value })
+                  }
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label>السعر (د.ت)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    dir="ltr"
+                    value={storeForm.price ?? ""}
+                    onChange={(e) =>
+                      setStoreForm({
+                        ...storeForm,
+                        price: Number(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>ترتيب العرض</Label>
+                  <Input
+                    type="number"
+                    dir="ltr"
+                    value={storeForm.sort_order ?? 0}
+                    onChange={(e) =>
+                      setStoreForm({
+                        ...storeForm,
+                        sort_order: Number(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label>الفئة</Label>
+                <select
+                  className="flex h-10 w-full rounded-xl border border-stone-200 bg-white px-3 text-sm"
+                  value={storeForm.category ?? "original_bottle"}
+                  onChange={(e) =>
+                    setStoreForm({
+                      ...storeForm,
+                      category: e.target.value as StoreCategory,
+                    })
+                  }
+                >
+                  <option value="original_bottle">قوارير أصلية</option>
+                  <option value="prefilled_bottle">قوارير معبأة</option>
+                  <option value="air_freshener">معطّرات جو</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <Label>روابط الصور (سطر لكل رابط https)</Label>
+                <textarea
+                  dir="ltr"
+                  className="flex min-h-[80px] w-full resize-y rounded-xl border border-stone-200 bg-white px-3 py-2 font-mono text-xs text-stone-800 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C5973E]/40"
+                  placeholder="https://…"
+                  value={storeForm.image_urls_raw ?? ""}
+                  onChange={(e) =>
+                    setStoreForm({
+                      ...storeForm,
+                      image_urls_raw: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <label className="flex items-center gap-2 text-sm text-stone-700">
+                <input
+                  type="checkbox"
+                  checked={storeForm.is_active !== false}
+                  onChange={(e) =>
+                    setStoreForm({
+                      ...storeForm,
+                      is_active: e.target.checked,
+                    })
+                  }
+                />
+                ظاهر في المتجر
+              </label>
+              <Button
+                type="button"
+                className="w-full"
+                disabled={savingStore}
+                onClick={submitStoreProduct}
+              >
+                {savingStore ? "جاري الحفظ…" : "حفظ"}
               </Button>
             </div>
           )}

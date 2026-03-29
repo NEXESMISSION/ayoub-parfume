@@ -1,4 +1,5 @@
-export type IngredientCategory = "top" | "heart" | "base";
+/** فئة الجمهور للمكوّن (عرض في صفحة البناء) */
+export type IngredientCategory = "women" | "man" | "kids";
 
 export type OrderStatus =
   | "new"
@@ -33,6 +34,25 @@ export type Ingredient = {
   is_active: boolean | null;
 };
 
+export type OrderKind = "custom" | "store";
+
+export type StoreCategory =
+  | "original_bottle"
+  | "prefilled_bottle"
+  | "air_freshener";
+
+export type StoreProduct = {
+  id: string;
+  created_at: string;
+  name: string;
+  description: string | null;
+  price: number;
+  category: StoreCategory;
+  image_urls: string[] | null;
+  sort_order: number;
+  is_active: boolean;
+};
+
 export type OrderRow = {
   id: string;
   created_at: string;
@@ -44,4 +64,8 @@ export type OrderRow = {
   total_price: number | null;
   status: OrderStatus;
   admin_notes: string | null;
+  delivery_address: string | null;
+  /** يُعبأ بعد ترقية قاعدة البيانات؛ يُعامل كـ custom إن وُجد undefined */
+  order_kind?: OrderKind | null;
+  store_product_id: string | null;
 };

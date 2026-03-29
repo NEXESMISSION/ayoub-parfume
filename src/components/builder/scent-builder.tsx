@@ -22,7 +22,11 @@ import { usePerfumeStore } from "@/store/perfume-store";
 import { buildIngredientMap, computeTotals } from "@/lib/pricing";
 import { applyShareToBottle, decodeShare } from "@/lib/share-state";
 import { createOrder } from "@/app/actions/orders";
-import type { Bottle, Ingredient } from "@/types";
+import type { Bottle, Ingredient, IngredientCategory } from "@/types";
+import {
+  INGREDIENT_CATEGORY_LABELS,
+  INGREDIENT_CATEGORIES,
+} from "@/lib/ingredient-category";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -226,11 +230,15 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
 
   const [step, setStep] = useState(0);
   const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [successOpen, setSuccessOpen] = useState(false);
   const [confirmedPhone, setConfirmedPhone] = useState("");
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [ingSearch, setIngSearch] = useState("");
+  const [ingAudience, setIngAudience] = useState<IngredientCategory | "all">(
+    "all",
+  );
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -260,19 +268,24 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
   const filteredIngredients = useMemo(() => {
     const q = ingSearch.trim().toLowerCase();
     return ingredients.filter((ing) => {
+      if (ingAudience !== "all" && ing.category !== ingAudience) return false;
       if (!q) return true;
       const name = ing.name.toLowerCase();
       const slug = (ing.slug ?? "").toLowerCase();
       return name.includes(q) || slug.includes(q);
     });
-  }, [ingredients, ingSearch]);
+  }, [ingredients, ingSearch, ingAudience]);
 
   const phoneDigits = digitsOnly(phone);
   const canNext = [
     !!bottle,
     !!selected,
     !!selected && !totals.overCapacity,
-    phoneDigits.length >= 8 && !totals.overCapacity && !!bottle && !!selected,
+    phoneDigits.length >= 8 &&
+      !totals.overCapacity &&
+      !!bottle &&
+      !!selected &&
+      address.trim().length >= 5,
   ];
 
   const goNext = () => {
@@ -285,6 +298,7 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
     if (
       !bottle ||
       phoneDigits.length < 8 ||
+      address.trim().length < 5 ||
       !recipe.length ||
       totals.overCapacity
     )
@@ -298,10 +312,12 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
         recipe,
         stickerText: "",
         totalPrice: totals.totalPrice,
+        deliveryAddress: address.trim(),
       });
       if (res.ok) {
         setConfirmedPhone(phoneDigits);
         setPhone("");
+        setAddress("");
         setSuccessOpen(true);
         setStep(0);
       } else {
@@ -417,6 +433,35 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
                   transition={stepTransition}
                   className="flex min-h-0 flex-1 flex-col overflow-hidden"
                 >
+                  <div className="mb-2 flex shrink-0 flex-wrap justify-center gap-1.5 px-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setIngAudience("all")}
+                      className={cn(
+                        "rounded-full px-3 py-1.5 text-[11px] font-semibold transition",
+                        ingAudience === "all"
+                          ? "bg-zinc-900 text-white"
+                          : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200",
+                      )}
+                    >
+                      الكل
+                    </button>
+                    {INGREDIENT_CATEGORIES.map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => setIngAudience(c)}
+                        className={cn(
+                          "rounded-full px-3 py-1.5 text-[11px] font-semibold transition",
+                          ingAudience === c
+                            ? "bg-[#C5973E] text-white shadow-sm"
+                            : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200",
+                        )}
+                      >
+                        {INGREDIENT_CATEGORY_LABELS[c]}
+                      </button>
+                    ))}
+                  </div>
                   <div className="relative mx-auto mb-2 w-full max-w-md shrink-0">
                     <Search className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
                     <Input
@@ -620,6 +665,29 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
                     <div className="space-y-2">
                       <div className="text-center">
                         <Label
+                          htmlFor="addr"
+                          className="text-sm font-bold text-zinc-900"
+                        >
+                          عنوان التوصيل
+                        </Label>
+                        <p className="mt-0.5 text-[11px] text-zinc-500">
+                          نحتاج عنواناً تقريبياً للتوصيل
+                        </p>
+                      </div>
+                      <textarea
+                        id="addr"
+                        dir="rtl"
+                        rows={3}
+                        className="flex w-full resize-none rounded-xl border-2 border-zinc-200/90 bg-white px-3 py-2 text-sm text-zinc-900 shadow-inner placeholder:text-zinc-400 focus-visible:outline-none focus-visible:border-[#C5973E] focus-visible:ring-2 focus-visible:ring-[#C5973E]/25"
+                        placeholder="المدينة، الحي، أقرب نقطة دالة…"
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="text-center">
+                        <Label
                           htmlFor="phone"
                           className="text-sm font-bold text-zinc-900"
                         >
@@ -655,7 +723,8 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
                         disabled={
                           submitting ||
                           !canNext[3] ||
-                          phoneDigits.length < 8
+                          phoneDigits.length < 8 ||
+                          address.trim().length < 5
                         }
                         onClick={onSubmit}
                       >

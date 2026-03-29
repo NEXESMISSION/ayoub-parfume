@@ -23,12 +23,26 @@ create table if not exists public.ingredients (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   slug text unique,
-  category text not null check (category in ('top','heart','base')),
+  category text not null check (category in ('women','man','kids')),
   price_per_gram numeric(10,2) not null,
   intensity_factor numeric(5,2) default 1,
   image_url text,
   is_active boolean default true,
   created_at timestamptz default now()
+);
+
+create table if not exists public.store_products (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz default now(),
+  name text not null,
+  description text,
+  price numeric(10,2) not null,
+  category text not null check (
+    category in ('original_bottle', 'prefilled_bottle', 'air_freshener')
+  ),
+  image_urls text[] not null default '{}',
+  sort_order int not null default 0,
+  is_active boolean not null default true
 );
 
 create table if not exists public.orders (
@@ -43,7 +57,10 @@ create table if not exists public.orders (
   status text not null default 'new' check (
     status in ('new','mixing','labeling','ready','completed','cancelled')
   ),
-  admin_notes text
+  admin_notes text,
+  delivery_address text,
+  order_kind text not null default 'custom' check (order_kind in ('custom', 'store')),
+  store_product_id uuid references public.store_products(id)
 );
 
 create table if not exists public.admin_users (
@@ -57,6 +74,9 @@ create table if not exists public.admin_users (
 create index if not exists idx_orders_created_at on public.orders (created_at desc);
 create index if not exists idx_orders_status on public.orders (status);
 create index if not exists idx_orders_bottle_id on public.orders (bottle_id);
+create index if not exists idx_orders_store_product_id on public.orders (store_product_id);
+create index if not exists idx_store_products_category_active
+  on public.store_products (category, is_active, sort_order);
 create index if not exists idx_bottles_is_active on public.bottles (is_active);
 create index if not exists idx_ingredients_is_active on public.ingredients (is_active);
 
@@ -66,6 +86,7 @@ create index if not exists idx_ingredients_is_active on public.ingredients (is_a
 
 alter table public.bottles enable row level security;
 alter table public.ingredients enable row level security;
+alter table public.store_products enable row level security;
 alter table public.orders enable row level security;
 alter table public.admin_users enable row level security;
 
@@ -88,6 +109,17 @@ create policy "bottles_select_public"
 drop policy if exists "bottles_all_admin" on public.bottles;
 create policy "bottles_all_admin"
   on public.bottles for all
+  using (exists (select 1 from public.admin_users a where a.user_id = auth.uid()))
+  with check (exists (select 1 from public.admin_users a where a.user_id = auth.uid()));
+
+drop policy if exists "store_products_select_public" on public.store_products;
+create policy "store_products_select_public"
+  on public.store_products for select
+  using (is_active = true);
+
+drop policy if exists "store_products_all_admin" on public.store_products;
+create policy "store_products_all_admin"
+  on public.store_products for all
   using (exists (select 1 from public.admin_users a where a.user_id = auth.uid()))
   with check (exists (select 1 from public.admin_users a where a.user_id = auth.uid()));
 
