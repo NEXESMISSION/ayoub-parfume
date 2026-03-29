@@ -13,7 +13,11 @@ export const metadata: Metadata = {
   description:
     "صمّم عطرك المخصص مع ORIX، احسب السعر مباشرة، وأرسل الطلب بسهولة.",
   icons: {
-    icon: "/logo.png",
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/logo.png", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
     apple: "/logo.png",
   },
   manifest: "/manifest.json",

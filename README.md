@@ -1,36 +1,37 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ORIX — perfume builder (Next.js)
 
-## Getting Started
+Custom perfume ordering: bottle, ingredient, quantity, phone confirmation. Admin dashboard for orders and catalog.
 
-First, run the development server:
+## Local development
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Copy `.env.local.example` to `.env.local` and set Supabase (and optional WhatsApp) variables.
 
 ## Deploy on Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Import the Git repository.
+2. **Root Directory** must be the app root (where `package.json` lives). Leave it **empty** or **`.`** — do **not** set a subfolder unless the repo is a monorepo.
+3. **Framework preset:** Next.js (auto-detected).
+4. **Environment variables** (Production + Preview):  
+   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and optionally `NEXT_PUBLIC_WHATSAPP_NUMBER`.
+5. Redeploy after changing env vars.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Verify deployment
+
+- Open `/api/health` — should return `{"ok":true}`.
+- Open `/` — landing page.
+- `/favicon.ico` — favicon (served from `public/`).
+
+### If you see `404 NOT_FOUND` on Vercel
+
+- Confirm the latest deployment **build** succeeded (check the Vercel build log).
+- Fix **Root Directory** (wrong folder = no Next app = broken site).
+- Confirm you are opening the URL shown for that deployment (production or preview), not an old deleted deployment.
+
+## License
+
+Private / project use.
