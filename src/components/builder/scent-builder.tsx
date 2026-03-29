@@ -14,11 +14,16 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
+  Info,
   Minus,
   Plus,
   Search,
 } from "lucide-react";
-import { usePerfumeStore } from "@/store/perfume-store";
+import {
+  OIL_GRAMS_MAX,
+  OIL_GRAMS_MIN,
+  usePerfumeStore,
+} from "@/store/perfume-store";
 import { buildIngredientMap, computeTotals } from "@/lib/pricing";
 import { applyShareToBottle, decodeShare } from "@/lib/share-state";
 import { createOrder } from "@/app/actions/orders";
@@ -509,6 +514,27 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
                   <div
                     className={cn("w-full max-w-sm space-y-3 p-4", panel)}
                   >
+                    <div className="flex gap-2 rounded-xl border border-[#C5973E]/25 bg-gradient-to-br from-[#fdf8ee] to-[#f5ebe0]/90 px-3 py-2.5 shadow-sm shadow-amber-900/5">
+                      <Info
+                        className="size-4 shrink-0 text-[#8F6B28]"
+                        strokeWidth={2}
+                        aria-hidden
+                      />
+                      <div className="min-w-0 text-start">
+                        <p className="text-[10px] font-bold text-[#5c4420]">
+                          موصى به
+                        </p>
+                        <p className="mt-0.5 text-[10px] leading-relaxed text-[#6b5340]">
+                          غالباً تكفي{" "}
+                          <span dir="ltr" className="tabular-nums font-semibold">
+                            5–15 غ
+                          </span>{" "}
+                          للعطور الشخصية حسب القارورة؛ لا تتجاوز سعة القارورة
+                          بالمليلتر حتى لا يظهر التحذير أسفل الشريط.
+                        </p>
+                      </div>
+                    </div>
+
                     <div className="border-b border-zinc-100 pb-2.5 text-center">
                       <p className="text-sm font-bold text-zinc-900">
                         {selectedIng.name}
@@ -552,8 +578,12 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
 
                     <div className="rounded-xl bg-zinc-100/80 px-3 py-2.5">
                       <div className="mb-1.5 flex justify-between text-[10px] font-medium text-zinc-500">
-                        <span dir="ltr">0.5 غ</span>
-                        <span dir="ltr">20 غ</span>
+                        <span dir="ltr">
+                          {OIL_GRAMS_MIN} غ
+                        </span>
+                        <span dir="ltr">
+                          {OIL_GRAMS_MAX} غ
+                        </span>
                       </div>
                       <div
                         dir="ltr"
@@ -567,7 +597,10 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
                           className="size-9 shrink-0 rounded-lg border-zinc-200 bg-white"
                           onClick={() =>
                             setGrams(
-                              Math.max(0.5, selected.grams - 0.5),
+                              Math.max(
+                                OIL_GRAMS_MIN,
+                                selected.grams - 0.5,
+                              ),
                             )
                           }
                         >
@@ -575,8 +608,8 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
                         </Button>
                         <Slider
                           value={[selected.grams]}
-                          min={0.5}
-                          max={20}
+                          min={OIL_GRAMS_MIN}
+                          max={OIL_GRAMS_MAX}
                           step={0.5}
                           size="touch"
                           onValueChange={(v) =>
@@ -592,7 +625,10 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
                           className="size-9 shrink-0 rounded-lg border-zinc-200 bg-white"
                           onClick={() =>
                             setGrams(
-                              Math.min(20, selected.grams + 0.5),
+                              Math.min(
+                                OIL_GRAMS_MAX,
+                                selected.grams + 0.5,
+                              ),
                             )
                           }
                         >

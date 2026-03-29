@@ -3,6 +3,14 @@
 import { create } from "zustand";
 import type { Bottle, RecipeItem } from "@/types";
 
+/** حدود كمية الزيت في منشئ العطر (غرام) */
+export const OIL_GRAMS_MIN = 1;
+export const OIL_GRAMS_MAX = 60;
+
+function clampOilGrams(grams: number): number {
+  return Math.min(OIL_GRAMS_MAX, Math.max(OIL_GRAMS_MIN, grams));
+}
+
 export type PerfumeState = {
   bottle: Bottle | null;
   /** At most one ingredient in the blend */
@@ -29,19 +37,24 @@ export const usePerfumeStore = create<PerfumeState>((set, get) => ({
       set({ recipe: [] });
       return;
     }
-    set({ recipe: [{ ingredientId, grams: 1 }] });
+    set({ recipe: [{ ingredientId, grams: OIL_GRAMS_MIN }] });
   },
   setGrams: (grams) => {
     const r = get().recipe[0];
     if (!r) return;
     set({
-      recipe: [{ ...r, grams: Math.max(0.5, grams) }],
+      recipe: [{ ...r, grams: clampOilGrams(grams) }],
     });
   },
   hydrateFromShare: (payload) =>
     set({
       bottle: payload.bottle ?? get().bottle,
-      recipe: (payload.recipe ?? []).slice(0, 1),
+      recipe: (payload.recipe ?? [])
+        .slice(0, 1)
+        .map((item) => ({
+          ...item,
+          grams: clampOilGrams(item.grams),
+        })),
     }),
   reset: () => set({ bottle: null, recipe: [] }),
 }));
