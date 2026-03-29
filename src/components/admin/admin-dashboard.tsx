@@ -3,7 +3,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { cancelOrder, updateOrderStatus } from "@/app/actions/orders";
+import {
+  cancelOrder,
+  deleteOrderPermanent,
+  updateOrderStatus,
+} from "@/app/actions/orders";
 import {
   deactivateBottle,
   deactivateIngredient,
@@ -186,6 +190,18 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
     if (!confirm("إلغاء هذا الطلب؟")) return;
     const res = await cancelOrder(orderId);
     if (res.ok) void loadOrders();
+  }
+
+  async function onDeleteOrder(orderId: string) {
+    if (
+      !confirm(
+        "حذف هذا الطلب نهائياً من قاعدة البيانات؟ لا يمكن التراجع.",
+      )
+    )
+      return;
+    const res = await deleteOrderPermanent(orderId);
+    if (res.ok) void loadOrders();
+    else alert(res.error);
   }
 
   function openNewBottleForm() {
@@ -375,7 +391,7 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                           <th className="px-3 pb-3 pt-1 text-start font-medium">العنوان</th>
                           <th className="px-3 pb-3 pt-1 text-start font-medium">المجموع</th>
                           <th className="px-3 pb-3 pt-1 text-start font-medium">تغيير الحالة</th>
-                          <th className="px-3 pb-3 pt-1 text-start font-medium">إجراء</th>
+                          <th className="px-3 pb-3 pt-1 text-start font-medium">إجراءات</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -433,16 +449,27 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                               </select>
                             </td>
                             <td className="px-3 py-3">
-                              {o.status !== "cancelled" && (
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                {o.status !== "cancelled" && (
+                                  <Button
+                                    type="button"
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() => onCancel(o.id)}
+                                  >
+                                    إلغاء
+                                  </Button>
+                                )}
                                 <Button
                                   type="button"
-                                  variant="destructive"
+                                  variant="outline"
                                   size="sm"
-                                  onClick={() => onCancel(o.id)}
+                                  className="border-red-300 text-red-800 hover:bg-red-50"
+                                  onClick={() => onDeleteOrder(o.id)}
                                 >
-                                  إلغاء
+                                  حذف نهائي
                                 </Button>
-                              )}
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -491,7 +518,7 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                             العنوان: {o.delivery_address}
                           </p>
                         )}
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <select
                             className="min-w-0 flex-1 rounded-lg border border-stone-200 bg-white px-2.5 py-2 text-xs font-medium"
                             value={o.status}
@@ -517,6 +544,15 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                               إلغاء
                             </Button>
                           )}
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="shrink-0 border-red-300 text-red-800 hover:bg-red-50"
+                            onClick={() => onDeleteOrder(o.id)}
+                          >
+                            حذف نهائي
+                          </Button>
                         </div>
                       </div>
                     ))}

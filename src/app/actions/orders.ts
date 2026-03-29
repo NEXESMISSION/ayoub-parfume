@@ -136,3 +136,19 @@ export async function updateOrderStatus(orderId: string, status: string) {
 export async function cancelOrder(orderId: string) {
   return updateOrderStatus(orderId, "cancelled");
 }
+
+/** حذف صف الطلب نهائياً (لوحة الإدارة فقط — RLS) */
+export async function deleteOrderPermanent(orderId: string) {
+  const supabase = await createClient();
+  if (!supabase) {
+    return { ok: true as const, demo: true };
+  }
+  const { error } = await supabase.from("orders").delete().eq("id", orderId);
+  if (error) return { ok: false as const, error: error.message };
+  try {
+    revalidatePath("/admin");
+  } catch {
+    /* non-fatal */
+  }
+  return { ok: true as const, demo: false };
+}
