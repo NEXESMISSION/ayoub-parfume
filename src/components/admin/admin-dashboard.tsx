@@ -8,11 +8,13 @@ import {
   deactivateBottle,
   deactivateIngredient,
   deleteBottlePermanent,
+  deleteIngredientPermanent,
   saveBottle,
   saveIngredient,
 } from "@/app/actions/catalog";
 import {
   deactivateStoreProduct,
+  deleteStoreProductPermanent,
   saveStoreProduct,
 } from "@/app/actions/store-catalog";
 import type {
@@ -396,8 +398,13 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                               </span>
                               <span className="line-clamp-2">
                                 {(o.order_kind ?? "custom") === "store"
-                                  ? (o.store_products?.name ?? "—")
-                                  : (o.bottles?.name ?? "—")}
+                                  ? (o.store_products?.name ??
+                                      o.store_product_name_snapshot ??
+                                      o.sticker_text ??
+                                      "—")
+                                  : (o.bottles?.name ??
+                                      o.bottle_name_snapshot ??
+                                      "—")}
                               </span>
                             </td>
                             <td className="max-w-[160px] px-3 py-3 text-xs text-stone-600">
@@ -470,8 +477,13 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                           :{" "}
                           <span className="font-medium">
                             {(o.order_kind ?? "custom") === "store"
-                              ? (o.store_products?.name ?? "—")
-                              : (o.bottles?.name ?? "—")}
+                              ? (o.store_products?.name ??
+                                  o.store_product_name_snapshot ??
+                                  o.sticker_text ??
+                                  "—")
+                              : (o.bottles?.name ??
+                                  o.bottle_name_snapshot ??
+                                  "—")}
                           </span>
                         </p>
                         {o.delivery_address && (
@@ -569,7 +581,7 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                       onClick={async () => {
                         if (
                           !confirm(
-                            "حذف نهائي؟ ينجح فقط إن لم تُسجَّل أي طلبات بهذه القارورة."
+                            "حذف هذه القارورة نهائياً؟ الطلبات السابقة تبقى؛ يُزال فقط الربط بالكتالوج.",
                           )
                         )
                           return;
@@ -649,6 +661,25 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                     >
                       إخفاء
                     </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="border-red-300 text-red-800 hover:bg-red-50"
+                      onClick={async () => {
+                        if (
+                          !confirm(
+                            "حذف هذا المنتج نهائياً من قاعدة البيانات؟ طلبات المتجر السابقة تبقى مع الاسم المحفوظ في الطلب.",
+                          )
+                        )
+                          return;
+                        const r = await deleteStoreProductPermanent(p.id);
+                        if (r.ok) void loadStoreProducts();
+                        else alert(r.error);
+                      }}
+                    >
+                      حذف من القاعدة
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -710,6 +741,25 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                       }}
                     >
                       إخفاء
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="border-red-300 text-red-800 hover:bg-red-50"
+                      onClick={async () => {
+                        if (
+                          !confirm(
+                            "حذف هذا المكوّن نهائياً؟ الطلبات القديمة لا تُحذف؛ وصفة الزيت محفوظة داخل الطلب.",
+                          )
+                        )
+                          return;
+                        const r = await deleteIngredientPermanent(ing.id);
+                        if (r.ok) void loadIngredients();
+                        else alert(r.error);
+                      }}
+                    >
+                      حذف من القاعدة
                     </Button>
                   </div>
                 </CardContent>

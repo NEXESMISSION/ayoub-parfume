@@ -55,21 +55,22 @@ export async function deactivateBottle(id: string) {
   return { ok: true as const };
 }
 
-/** حذف نهائي إن لم تكن هناك طلبات مرتبطة */
+/** حذف نهائي — الطلبات القديمة تُفصل تلقائياً (SET NULL) وتبقى أسماؤها في لقطة الطلب */
 export async function deleteBottlePermanent(id: string) {
   const supabase = await createClient();
   if (!supabase) return { ok: false as const, error: "قاعدة البيانات غير متصلة" };
   const { error } = await supabase.from("bottles").delete().eq("id", id);
-  if (error) {
-    if (error.code === "23503" || error.message.includes("foreign key")) {
-      return {
-        ok: false as const,
-        error:
-          "لا يمكن الحذف: توجد طلبات تستخدم هذه القارورة. استخدم «إخفاء» بدلاً من ذلك.",
-      };
-    }
-    return { ok: false as const, error: error.message };
-  }
+  if (error) return { ok: false as const, error: error.message };
+  revalidatePath("/build");
+  revalidatePath("/admin");
+  return { ok: true as const };
+}
+
+export async function deleteIngredientPermanent(id: string) {
+  const supabase = await createClient();
+  if (!supabase) return { ok: false as const, error: "قاعدة البيانات غير متصلة" };
+  const { error } = await supabase.from("ingredients").delete().eq("id", id);
+  if (error) return { ok: false as const, error: error.message };
   revalidatePath("/build");
   revalidatePath("/admin");
   return { ok: true as const };

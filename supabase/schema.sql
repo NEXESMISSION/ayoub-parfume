@@ -50,7 +50,7 @@ create table if not exists public.orders (
   created_at timestamptz default now(),
   customer_name text,
   whatsapp_number text,
-  bottle_id uuid references public.bottles(id),
+  bottle_id uuid references public.bottles(id) on delete set null,
   recipe jsonb not null default '[]'::jsonb,
   sticker_text text,
   total_price numeric(10,2),
@@ -60,7 +60,9 @@ create table if not exists public.orders (
   admin_notes text,
   delivery_address text,
   order_kind text not null default 'custom' check (order_kind in ('custom', 'store')),
-  store_product_id uuid references public.store_products(id)
+  store_product_id uuid references public.store_products(id) on delete set null,
+  bottle_name_snapshot text,
+  store_product_name_snapshot text
 );
 
 create table if not exists public.admin_users (

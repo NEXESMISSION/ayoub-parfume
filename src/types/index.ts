@@ -68,4 +68,8 @@ export type OrderRow = {
   /** يُعبأ بعد ترقية قاعدة البيانات؛ يُعامل كـ custom إن وُجد undefined */
   order_kind?: OrderKind | null;
   store_product_id: string | null;
+  /** نسخة من اسم القارورة عند الطلب — تبقى بعد حذف القارورة */
+  bottle_name_snapshot?: string | null;
+  /** نسخة من اسم منتج المتجر عند الطلب */
+  store_product_name_snapshot?: string | null;
 };

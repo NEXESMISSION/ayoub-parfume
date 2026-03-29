@@ -72,3 +72,13 @@ export async function deactivateStoreProduct(id: string) {
   revalidateStore();
   return { ok: true as const };
 }
+
+/** حذف نهائي — الطلبات المرتبطة تُفصل (SET NULL) وتبقى أسماء المنتجات في لقطة الطلب */
+export async function deleteStoreProductPermanent(id: string) {
+  const supabase = await createClient();
+  if (!supabase) return { ok: false as const, error: "قاعدة البيانات غير متصلة" };
+  const { error } = await supabase.from("store_products").delete().eq("id", id);
+  if (error) return { ok: false as const, error: error.message };
+  revalidateStore();
+  return { ok: true as const };
+}

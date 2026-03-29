@@ -8,6 +8,8 @@ export async function createOrder(input: {
   customerName: string;
   whatsappNumber: string;
   bottleId: string;
+  /** يُخزَّن مع الطلب حتى يبقى الاسم ظاهراً بعد حذف القارورة من الكتالوج */
+  bottleNameSnapshot: string;
   recipe: RecipeItem[];
   stickerText: string;
   totalPrice: number;
@@ -33,6 +35,7 @@ export async function createOrder(input: {
       whatsapp_number: input.whatsappNumber,
       delivery_address: input.deliveryAddress.trim() || null,
       bottle_id: input.bottleId,
+      bottle_name_snapshot: input.bottleNameSnapshot.trim() || null,
       recipe: recipeJson,
       sticker_text: input.stickerText,
       total_price: input.totalPrice,
@@ -88,6 +91,7 @@ export async function createStoreOrder(input: {
     const { error } = await supabase.from("orders").insert({
       order_kind: "store",
       store_product_id: product.id,
+      store_product_name_snapshot: product.name,
       customer_name:
         (input.customerName ?? input.whatsappNumber).trim() || null,
       whatsapp_number: input.whatsappNumber,
