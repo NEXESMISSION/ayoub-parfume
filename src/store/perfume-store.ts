@@ -4,7 +4,7 @@ import { create } from "zustand";
 import type { Bottle, RecipeItem } from "@/types";
 
 /** حدود كمية الزيت في منشئ العطر (غرام) */
-export const OIL_GRAMS_MIN = 1;
+export const OIL_GRAMS_MIN = 5;
 export const OIL_GRAMS_MAX = 60;
 
 function clampOilGrams(grams: number): number {
