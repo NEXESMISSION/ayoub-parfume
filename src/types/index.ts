@@ -41,6 +41,11 @@ export type StoreCategory =
   | "prefilled_bottle"
   | "air_freshener";
 
+export type StoreProductSizeOption = {
+  volume_ml: number;
+  price: number;
+};
+
 export type StoreProduct = {
   id: string;
   created_at: string;
@@ -49,6 +54,7 @@ export type StoreProduct = {
   price: number;
   category: StoreCategory;
   image_urls: string[] | null;
+  size_options: StoreProductSizeOption[];
   sort_order: number;
   is_active: boolean;
 };

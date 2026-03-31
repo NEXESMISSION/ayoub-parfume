@@ -1,157 +1,176 @@
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import {
-  STORE_CATEGORY_SLUGS,
-  categoryFromSlug,
-  categoryInfo,
-} from "@/lib/store-categories";
 import { fetchStoreProducts } from "@/lib/store-data";
+import { categoryInfo, STORE_CATEGORIES } from "@/lib/store-categories";
 import { PrefetchStoreProductIds } from "@/components/store/prefetch-store-navigation";
-import type { StoreProduct } from "@/types";
 
-type Props = { params: Promise<{ slug: string }> };
+export const dynamic = "force-dynamic";
 
-export async function generateStaticParams() {
-  return STORE_CATEGORY_SLUGS.map((slug) => ({ slug }));
-}
-
-function primaryImage(p: StoreProduct): string | null {
-  const u = p.image_urls?.filter(Boolean) ?? [];
-  return u[0] ?? null;
-}
-
-export async function generateMetadata({ params }: Props) {
+export default async function StoreCategoryPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
   const { slug } = await params;
   const info = categoryInfo(slug);
-  if (!info) return { title: "المتجر" };
-  return { title: `${info.title} — ORIX` };
-}
+  if (!info) return notFound();
 
-export default async function StoreCategoryPage({ params }: Props) {
-  const { slug } = await params;
-  const category = categoryFromSlug(slug);
-  const info = categoryInfo(slug);
-  if (!category || !info) notFound();
-
-  const products = await fetchStoreProducts(category);
+  const products = await fetchStoreProducts(info.category);
+  const otherCategories = STORE_CATEGORIES.filter((c) => c.slug !== slug);
 
   return (
-    <main className="min-h-[100dvh] bg-[#faf8f5]">
-      {products.length > 0 && (
-        <PrefetchStoreProductIds productIds={products.map((p) => p.id)} />
-      )}
-      <div
-        className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(ellipse_70%_45%_at_50%_0%,rgba(212,168,75,0.08),transparent),radial-gradient(ellipse_50%_35%_at_100%_60%,rgba(143,107,40,0.04),transparent)]"
-        aria-hidden
-      />
+    <div className="py-8 sm:py-10">
+      {/* Breadcrumbs */}
+      <nav className="mb-6 flex items-center gap-1.5 text-xs text-stone-400">
+        <Link href="/" className="transition hover:text-stone-600">الرئيسية</Link>
+        <span>/</span>
+        <span className="font-semibold text-stone-700">{info.title}</span>
+      </nav>
 
-      <header className="sticky top-0 z-20 border-b border-stone-200/80 bg-[#faf8f5]/85 backdrop-blur-lg">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <Link
-            href="/store"
-            prefetch
-            className="text-xs font-semibold text-[#8F6B28] transition hover:text-[#A67C2E] sm:text-sm"
-          >
-            ← الفئات
-          </Link>
-          <span className="min-w-0 truncate text-center text-xs font-bold text-stone-900 sm:text-sm">
-            {info.title}
-          </span>
-          <Link
-            href="/"
-            className="text-xs font-medium text-stone-600 transition hover:text-stone-900 sm:text-sm"
-          >
-            الرئيسية
-          </Link>
-        </div>
-      </header>
-
-      <div className="mx-auto max-w-6xl px-4 pb-12 pt-6 sm:px-6 sm:pb-16 sm:pt-8">
-        {/* عنوان الفئة */}
-        <div className="mb-6 border-b border-stone-200/80 pb-6 sm:mb-8 sm:pb-8">
-          <h1 className="text-2xl font-bold leading-tight text-stone-900 sm:text-3xl">
-            {info.title}
-          </h1>
-          <p className="mt-2 max-w-xl text-sm leading-relaxed text-stone-500 sm:text-base">
-            {info.subtitle}
-          </p>
-        </div>
-
-        {products.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-stone-300 bg-white/60 py-16 text-center">
-            <p className="text-sm font-medium text-stone-600">
-              لا توجد منتجات في هذه الفئة حالياً.
+      {/* Category header */}
+      <div className="relative mb-8 overflow-hidden rounded-3xl sm:mb-10">
+        <div className="relative flex min-h-[10rem] items-end sm:min-h-[14rem]">
+          <Image
+            src={info.coverSrc}
+            alt={info.title}
+            fill
+            className="object-cover"
+            sizes="100vw"
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-stone-950/80 via-stone-900/40 to-stone-900/20" />
+          <div className="relative z-10 w-full p-6 sm:p-8">
+            <p className="text-[10px] font-bold tracking-[0.3em] text-[#D4A84B]/70">
+              ORIX STORE
             </p>
-            <Link
-              href="/store"
-              prefetch
-              className="mt-4 text-sm font-semibold text-[#8F6B28] underline-offset-4 hover:underline"
-            >
-              العودة إلى الفئات
-            </Link>
+            <h1 className="mt-1 text-2xl font-black text-white sm:text-3xl">
+              {info.title}
+            </h1>
+            <p className="mt-1 text-sm text-white/60">{info.subtitle}</p>
           </div>
-        ) : (
-          <ul className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
-            {products.map((p) => {
-              const img = primaryImage(p);
-              return (
-                <li key={p.id} className="min-w-0">
-                  <Link
-                    href={`/store/product/${p.id}`}
-                    prefetch
-                    className="group flex h-full flex-col overflow-hidden rounded-2xl border border-stone-200/90 bg-white shadow-[0_2px_16px_-6px_rgba(28,25,23,0.1)] ring-1 ring-stone-900/[0.02] transition duration-300 hover:-translate-y-1 hover:border-[#D4A84B]/45 hover:shadow-[0_16px_40px_-12px_rgba(143,107,40,0.22)]"
-                  >
-                    <div className="relative aspect-[1/1.08] w-full overflow-hidden bg-gradient-to-b from-stone-100 to-stone-50">
-                      {img ? (
-                        <Image
-                          src={img}
-                          alt=""
-                          fill
-                          className="object-cover transition duration-500 ease-out group-hover:scale-[1.06]"
-                          sizes="(max-width: 640px) 46vw, (max-width: 1024px) 31vw, 320px"
-                        />
-                      ) : (
-                        <div className="flex size-full items-center justify-center text-xs text-stone-400">
-                          بدون صورة
-                        </div>
-                      )}
-                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-stone-900/25 via-transparent to-transparent opacity-40" />
-                    </div>
-                    <div className="flex flex-1 flex-col p-3 sm:p-4">
-                      <h2 className="line-clamp-2 min-h-[2.5rem] text-[0.8125rem] font-bold leading-snug text-stone-900 sm:min-h-[2.75rem] sm:text-[0.9375rem]">
-                        {p.name}
-                      </h2>
-                      {p.description && (
-                        <p
-                          className="mt-1.5 line-clamp-2 text-[0.65rem] leading-relaxed text-stone-500 sm:text-xs"
-                          dir="auto"
-                        >
-                          {p.description}
-                        </p>
-                      )}
-                      <div className="mt-auto flex items-end justify-between gap-2 border-t border-stone-100 pt-3">
-                        <p
-                          className="text-[0.8125rem] font-bold tabular-nums tracking-tight text-[#7a5a22] sm:text-base"
-                          dir="ltr"
-                        >
-                          {p.price.toFixed(2)}
-                          <span className="me-1 text-[0.65rem] font-semibold text-stone-400 sm:text-xs">
-                            د.ت
-                          </span>
-                        </p>
-                        <span className="shrink-0 rounded-full bg-[#D4A84B]/12 px-2 py-0.5 text-[0.6rem] font-bold text-[#8F6B28] transition group-hover:bg-[#D4A84B]/20 sm:text-[0.65rem]">
-                          عرض
-                        </span>
-                      </div>
-                    </div>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+        </div>
       </div>
-    </main>
+
+      {/* Products */}
+      {products.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-stone-300 bg-white/60 px-6 py-16">
+          <div className="flex size-14 items-center justify-center rounded-full bg-stone-100">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="size-6 text-stone-400" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" d="m20 7-8-4-8 4m16 0-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
+          </div>
+          <p className="text-sm font-medium text-stone-500">لا توجد منتجات حالياً في هذه الفئة</p>
+          <Link href="/#store" className="text-xs font-bold text-[#A67C2E] transition hover:underline">
+            تصفّح الفئات الأخرى
+          </Link>
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {products.map((p) => {
+            const hasImage = p.image_urls && p.image_urls.length > 0;
+            const hasSizes = p.size_options && p.size_options.length > 0;
+            const minPrice = hasSizes
+              ? Math.min(...p.size_options.map((s) => s.price))
+              : p.price;
+
+            return (
+              <Link
+                key={p.id}
+                href={`/store/product/${p.id}`}
+                className="group flex flex-col overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-[0_12px_40px_-16px_rgba(143,107,40,0.18)]"
+              >
+                <div className="relative aspect-[4/3] w-full overflow-hidden bg-stone-100">
+                  {hasImage ? (
+                    <Image
+                      src={p.image_urls![0]}
+                      alt={p.name}
+                      fill
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      sizes="(max-width: 1024px) 50vw, 33vw"
+                    />
+                  ) : (
+                    <div className="flex size-full items-center justify-center text-stone-300">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="size-10" aria-hidden>
+                        <rect width="18" height="18" x="3" y="3" rx="2" />
+                        <circle cx="9" cy="9" r="1.5" />
+                        <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-1 flex-col p-4">
+                  <h2 className="line-clamp-2 text-[0.95rem] font-bold leading-snug text-stone-900">
+                    {p.name}
+                  </h2>
+                  {p.description && (
+                    <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-stone-500">
+                      {p.description}
+                    </p>
+                  )}
+                  <div className="mt-auto flex items-end justify-between gap-2 pt-3">
+                    <div>
+                      {hasSizes ? (
+                        <p className="text-xs text-stone-500">
+                          <span className="text-[0.95rem] font-extrabold text-stone-900">
+                            {minPrice.toFixed(2)}
+                          </span>{" "}
+                          <span className="text-stone-400">د.ت</span>
+                          {p.size_options.length > 1 && (
+                            <span className="mr-1 text-stone-400"> وما فوق</span>
+                          )}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-stone-500">
+                          <span className="text-[0.95rem] font-extrabold text-stone-900">
+                            {Number(p.price).toFixed(2)}
+                          </span>{" "}
+                          <span className="text-stone-400">د.ت</span>
+                        </p>
+                      )}
+                    </div>
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-stone-100 text-xs text-stone-400 transition group-hover:bg-[#D4A84B]/15 group-hover:text-[#A67C2E]" aria-hidden>
+                      ←
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Other categories */}
+      {otherCategories.length > 0 && (
+        <div className="mt-14 sm:mt-16">
+          <h2 className="mb-5 text-lg font-bold text-stone-900">فئات أخرى</h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {otherCategories.map((c) => (
+              <Link
+                key={c.slug}
+                href={`/store/${c.slug}`}
+                className="group flex items-center gap-4 overflow-hidden rounded-2xl border border-stone-200/80 bg-white p-1 shadow-sm transition hover:shadow-md"
+              >
+                <div className="relative size-20 shrink-0 overflow-hidden rounded-xl sm:size-24">
+                  <Image
+                    src={c.coverSrc}
+                    alt={c.title}
+                    fill
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                    sizes="96px"
+                  />
+                </div>
+                <div className="py-2 pe-3">
+                  <h3 className="text-sm font-bold text-stone-900">{c.title}</h3>
+                  <p className="mt-0.5 text-xs text-stone-500">{c.subtitle}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <PrefetchStoreProductIds productIds={products.map((p) => p.id)} />
+    </div>
   );
 }

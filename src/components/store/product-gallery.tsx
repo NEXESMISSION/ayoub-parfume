@@ -16,37 +16,34 @@ export function ProductGallery({ images, productName }: Props) {
 
   if (safe.length === 0) {
     return (
-      <div className="flex aspect-square w-full max-w-xl items-center justify-center rounded-[1.25rem] border border-dashed border-stone-300/90 bg-gradient-to-b from-stone-100/80 to-stone-50 text-sm text-stone-400">
-        لا صور لهذا المنتج
+      <div className="flex aspect-square w-full items-center justify-center rounded-3xl border border-dashed border-stone-300 bg-gradient-to-br from-stone-100 to-stone-50">
+        <div className="text-center">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="mx-auto size-10 text-stone-300" aria-hidden>
+            <rect width="18" height="18" x="3" y="3" rx="2" />
+            <circle cx="9" cy="9" r="1.5" />
+            <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+          </svg>
+          <p className="mt-2 text-sm text-stone-400">لا صور لهذا المنتج</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-xl lg:max-w-none">
-      <div
-        className={cn(
-          "relative aspect-square w-full overflow-hidden rounded-[1.25rem]",
-          "bg-gradient-to-br from-stone-100 via-white to-stone-50",
-          "shadow-[0_20px_50px_-24px_rgba(28,25,23,0.25),inset_0_1px_0_rgba(255,255,255,0.9)]",
-          "ring-1 ring-stone-200/90",
-        )}
-      >
+    <div className="space-y-3">
+      <div className="relative aspect-square w-full overflow-hidden rounded-3xl bg-stone-100 shadow-[0_16px_48px_-20px_rgba(28,25,23,0.15)] ring-1 ring-stone-200/80">
         <Image
           src={current}
           alt={productName}
           fill
-          className="object-cover"
+          className="object-cover transition-opacity duration-300"
           sizes="(max-width: 1024px) 100vw, 50vw"
           priority
         />
-        <div
-          className="pointer-events-none absolute inset-0 bg-[linear-gradient(160deg,transparent_40%,rgba(40,35,30,0.12)_100%)]"
-          aria-hidden
-        />
       </div>
+
       {safe.length > 1 && (
-        <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {safe.map((src, i) => (
             <button
               key={`${src}-${i}`}
@@ -54,19 +51,13 @@ export function ProductGallery({ images, productName }: Props) {
               onClick={() => setActive(i)}
               aria-label={`صورة ${i + 1}`}
               className={cn(
-                "relative size-16 shrink-0 overflow-hidden rounded-xl border-2 transition sm:size-[4.25rem]",
+                "relative size-16 shrink-0 overflow-hidden rounded-xl transition sm:size-[4.5rem]",
                 i === active
-                  ? "border-[#C5973E] shadow-md shadow-[#D4A84B]/20 ring-2 ring-[#D4A84B]/25"
-                  : "border-stone-200/90 opacity-80 hover:border-stone-300 hover:opacity-100",
+                  ? "ring-2 ring-[#C5973E] ring-offset-2 ring-offset-[#faf8f5]"
+                  : "opacity-60 ring-1 ring-stone-200 hover:opacity-100",
               )}
             >
-              <Image
-                src={src}
-                alt=""
-                fill
-                className="object-cover"
-                sizes="68px"
-              />
+              <Image src={src} alt="" fill className="object-cover" sizes="72px" />
             </button>
           ))}
         </div>

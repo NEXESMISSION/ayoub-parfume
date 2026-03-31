@@ -37,6 +37,7 @@ create table if not exists public.store_products (
   name text not null,
   description text,
   price numeric(10,2) not null,
+  size_options jsonb not null default '[]'::jsonb,
   category text not null check (
     category in ('original_bottle', 'prefilled_bottle', 'air_freshener')
   ),

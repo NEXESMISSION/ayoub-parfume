@@ -6,6 +6,18 @@ export const STORE_PRODUCTS_CACHE_TAG = "store-products";
 
 function normalizeProduct(row: Record<string, unknown>): StoreProduct {
   const urls = row.image_urls;
+  const sizeOptionsRaw = row.size_options;
+  const size_options = Array.isArray(sizeOptionsRaw)
+    ? sizeOptionsRaw
+        .map((item) => {
+          const obj = item as Record<string, unknown>;
+          const volume_ml = Number(obj.volume_ml ?? 0);
+          const price = Number(obj.price ?? 0);
+          if (volume_ml <= 0 || price < 0) return null;
+          return { volume_ml, price };
+        })
+        .filter((v): v is { volume_ml: number; price: number } => v !== null)
+    : [];
   return {
     id: String(row.id),
     created_at: String(row.created_at ?? ""),
@@ -14,6 +26,7 @@ function normalizeProduct(row: Record<string, unknown>): StoreProduct {
     price: Number(row.price ?? 0),
     category: row.category as StoreProduct["category"],
     image_urls: Array.isArray(urls) ? (urls as string[]) : null,
+    size_options,
     sort_order: Number(row.sort_order ?? 0),
     is_active: Boolean(row.is_active ?? true),
   };

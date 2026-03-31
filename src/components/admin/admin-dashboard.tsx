@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import {
   cancelOrder,
@@ -29,6 +30,7 @@ import type {
   OrderStatus,
   StoreCategory,
   StoreProduct,
+  StoreProductSizeOption,
 } from "@/types";
 import { Button } from "@/components/ui/button";
 import {
@@ -84,6 +86,26 @@ const GROUP_ORDER: OrderStatus[] = [
   "cancelled",
 ];
 
+function sizeOptionsToRaw(options: StoreProductSizeOption[] | null | undefined) {
+  return (options ?? []).map((s) => `${s.volume_ml}:${s.price}`).join("\n");
+}
+
+function parseSizeOptionsRaw(raw: string): StoreProductSizeOption[] {
+  return raw
+    .split(/\r?\n|,/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [mlRaw, priceRaw] = line.split(":").map((v) => v.trim());
+      const volume_ml = Number(mlRaw ?? 0);
+      const price = Number(priceRaw ?? 0);
+      if (!Number.isFinite(volume_ml) || volume_ml <= 0) return null;
+      if (!Number.isFinite(price) || price < 0) return null;
+      return { volume_ml, price };
+    })
+    .filter((v): v is StoreProductSizeOption => v !== null);
+}
+
 export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
   const [tab, setTab] = useState<Tab>("orders");
   const [orders, setOrders] = useState<OrderWithBottle[]>([]);
@@ -94,7 +116,13 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
 
   const [bottleForm, setBottleForm] = useState<Partial<Bottle> | null>(null);
   const [ingForm, setIngForm] = useState<Partial<Ingredient> | null>(null);
-  const [storeForm, setStoreForm] = useState<Partial<StoreProduct> & { image_urls_raw?: string } | null>(null);
+  const [storeForm, setStoreForm] = useState<
+    (Partial<StoreProduct> & {
+      image_urls_raw?: string;
+      size_options_raw?: string;
+      size_options_list?: { volume_ml: number; price: number }[];
+    }) | null
+  >(null);
   const [savingBottle, setSavingBottle] = useState(false);
   const [savingIng, setSavingIng] = useState(false);
   const [savingStore, setSavingStore] = useState(false);
@@ -266,13 +294,23 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
     if (!storeForm || savingStore) return;
     setSavingStore(true);
     try {
+      const sizeList = (storeForm.size_options_list ?? []).filter(
+        (s) => s.volume_ml > 0,
+      );
+      const sizeRaw = sizeList
+        .map((s) => `${s.volume_ml}:${s.price}`)
+        .join("\n");
       const res = await saveStoreProduct({
         id: storeForm.id,
         name: String(storeForm.name ?? ""),
         description: String(storeForm.description ?? ""),
-        price: Number(storeForm.price ?? 0),
+        price:
+          sizeList.length > 0
+            ? Number(sizeList[0]?.price ?? 0)
+            : Number(storeForm.price ?? 0),
         category: (storeForm.category ?? "original_bottle") as StoreCategory,
         image_urls_raw: String(storeForm.image_urls_raw ?? ""),
+        size_options_raw: sizeRaw,
         sort_order: Number(storeForm.sort_order ?? 0),
         is_active: storeForm.is_active !== false,
       });
@@ -308,18 +346,31 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
   return (
     <div className="mx-auto max-w-6xl px-3 py-6 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] sm:px-4 sm:py-10">
       <div className="mb-6 flex flex-col gap-3 sm:mb-8 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-        <div className="min-w-0">
-          <h1 className="text-xl font-bold text-stone-900 sm:text-2xl">ORIX — لوحة التحكم</h1>
-          <p className="mt-0.5 text-xs text-stone-500 sm:text-sm">
-            الطلبات مجمّعة حسب الحالة · المنتجات
-          </p>
+        <div className="flex min-w-0 items-center gap-3">
+          <Link href="/" className="shrink-0 transition hover:opacity-70 active:scale-95">
+            <Image
+              src="/logo.png"
+              alt="ORIX"
+              width={96}
+              height={48}
+              className="h-8 w-auto sm:h-9"
+              sizes="96px"
+            />
+          </Link>
+          <div className="h-8 w-px bg-stone-200" aria-hidden />
+          <div className="min-w-0">
+            <h1 className="text-lg font-bold text-stone-900 sm:text-xl">لوحة التحكم</h1>
+            <p className="mt-0.5 text-[11px] text-stone-500 sm:text-xs">
+              الطلبات مجمّعة حسب الحالة · المنتجات
+            </p>
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" size="sm" className="w-fit" asChild>
-            <Link href="/build">البناء</Link>
+          <Button variant="outline" size="sm" className="w-fit" asChild>
+            <Link href="/">الرئيسية</Link>
           </Button>
           <Button variant="secondary" size="sm" className="w-fit" asChild>
-            <Link href="/store">المتجر</Link>
+            <Link href="/build">البناء</Link>
           </Button>
         </div>
       </div>
@@ -578,7 +629,23 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
             {bottlesUnique.map((b) => (
               <Card key={b.id}>
                 <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
+                  <div className="flex items-start gap-3">
+                    <div className="relative size-16 shrink-0 overflow-hidden rounded-lg border border-stone-200 bg-stone-100">
+                      {b.image_url ? (
+                        <Image
+                          src={b.image_url}
+                          alt="معاينة القارورة"
+                          fill
+                          className="object-cover"
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-lg text-stone-400">
+                          🫙
+                        </div>
+                      )}
+                    </div>
+                    <div>
                     <p className="font-semibold text-stone-900">{b.name}</p>
                     <p className="text-xs text-stone-500">
                       {b.capacity_ml} مل · {b.base_price.toFixed(2)} د.ت ·{" "}
@@ -587,6 +654,7 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                     <p className="mt-1 font-mono text-[10px] text-stone-400" dir="ltr">
                       {b.id}
                     </p>
+                    </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Button
@@ -649,6 +717,7 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                   price: 0,
                   category: "original_bottle",
                   image_urls_raw: "",
+                  size_options_list: [],
                   sort_order: 0,
                   is_active: true,
                 });
@@ -664,7 +733,12 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                   <div>
                     <p className="font-semibold text-stone-900">{p.name}</p>
                     <p className="text-xs text-stone-500">
-                      {p.category} · {Number(p.price).toFixed(2)} د.ت ·{" "}
+                      {p.category} ·
+                      {p.size_options?.length
+                        ? ` مقاسات ${p.size_options
+                            .map((s) => `${s.volume_ml}مل`)
+                            .join(" / ")} ·`
+                        : ` ${Number(p.price).toFixed(2)} د.ت ·`}{" "}
                       {p.is_active ? "ظاهر" : "مخفي"} · ترتيب {p.sort_order}
                     </p>
                   </div>
@@ -678,6 +752,10 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                           ...p,
                           price: Number(p.price),
                           image_urls_raw: (p.image_urls ?? []).join("\n"),
+                          size_options_list: (p.size_options ?? []).map((s) => ({
+                            volume_ml: s.volume_ml,
+                            price: s.price,
+                          })),
                           sort_order: p.sort_order ?? 0,
                         })
                       }
@@ -748,13 +826,30 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
             {ingredients.map((ing) => (
               <Card key={ing.id}>
                 <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
+                  <div className="flex items-start gap-3">
+                    <div className="relative size-16 shrink-0 overflow-hidden rounded-lg border border-stone-200 bg-stone-100">
+                      {ing.image_url ? (
+                        <Image
+                          src={ing.image_url}
+                          alt="معاينة المكوّن"
+                          fill
+                          className="object-cover"
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-lg text-stone-400">
+                          ✧
+                        </div>
+                      )}
+                    </div>
+                    <div>
                     <p className="font-semibold text-stone-900">{ing.name}</p>
                     <p className="text-xs text-stone-500">
                       {INGREDIENT_CATEGORY_LABELS[ing.category]} ·{" "}
                       {ing.price_per_gram} د.ت/غ ·{" "}
                       {ing.is_active ? "ظاهر" : "مخفي"}
                     </p>
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     <Button
@@ -834,6 +929,7 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                     type="number"
                     dir="ltr"
                     value={bottleForm.capacity_ml ?? ""}
+                    onFocus={(e) => e.target.select()}
                     onChange={(e) =>
                       setBottleForm({
                         ...bottleForm,
@@ -849,6 +945,7 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                     step="0.01"
                     dir="ltr"
                     value={bottleForm.base_price ?? ""}
+                    onFocus={(e) => e.target.select()}
                     onChange={(e) =>
                       setBottleForm({
                         ...bottleForm,
@@ -867,6 +964,24 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                     setBottleForm({ ...bottleForm, image_url: e.target.value })
                   }
                 />
+              </div>
+              <div className="space-y-1">
+                <Label>معاينة الصورة</Label>
+                <div className="relative h-32 w-full overflow-hidden rounded-xl border border-stone-200 bg-stone-100">
+                  {bottleForm.image_url ? (
+                    <Image
+                      src={bottleForm.image_url}
+                      alt="معاينة القارورة"
+                      fill
+                      className="object-cover"
+                      unoptimized
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-sm text-stone-400">
+                      أدخل رابط صورة لعرض المعاينة
+                    </div>
+                  )}
+                </div>
               </div>
               <label className="flex items-center gap-2 text-sm text-stone-700">
                 <input
@@ -941,6 +1056,7 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                     step="0.01"
                     dir="ltr"
                     value={ingForm.price_per_gram ?? ""}
+                    onFocus={(e) => e.target.select()}
                     onChange={(e) =>
                       setIngForm({
                         ...ingForm,
@@ -956,6 +1072,7 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                     step="0.1"
                     dir="ltr"
                     value={ingForm.intensity_factor ?? ""}
+                    onFocus={(e) => e.target.select()}
                     onChange={(e) =>
                       setIngForm({
                         ...ingForm,
@@ -974,6 +1091,24 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                     setIngForm({ ...ingForm, image_url: e.target.value })
                   }
                 />
+              </div>
+              <div className="space-y-1">
+                <Label>معاينة الصورة</Label>
+                <div className="relative h-32 w-full overflow-hidden rounded-xl border border-stone-200 bg-stone-100">
+                  {ingForm.image_url ? (
+                    <Image
+                      src={ingForm.image_url}
+                      alt="معاينة المكوّن"
+                      fill
+                      className="object-cover"
+                      unoptimized
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-sm text-stone-400">
+                      أدخل رابط صورة لعرض المعاينة
+                    </div>
+                  )}
+                </div>
               </div>
               <label className="flex items-center gap-2 text-sm text-stone-700">
                 <input
@@ -1036,12 +1171,15 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <Label>السعر (د.ت)</Label>
+                  <Label>
+                    السعر الأساسي (د.ت)
+                  </Label>
                   <Input
                     type="number"
                     step="0.01"
                     dir="ltr"
                     value={storeForm.price ?? ""}
+                    onFocus={(e) => e.target.select()}
                     onChange={(e) =>
                       setStoreForm({
                         ...storeForm,
@@ -1056,6 +1194,7 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                     type="number"
                     dir="ltr"
                     value={storeForm.sort_order ?? 0}
+                    onFocus={(e) => e.target.select()}
                     onChange={(e) =>
                       setStoreForm({
                         ...storeForm,
@@ -1065,6 +1204,111 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                   />
                 </div>
               </div>
+              {(storeForm.category === "prefilled_bottle" ||
+                storeForm.category === "air_freshener") && (
+                <div className="space-y-2">
+                  <Label>المقاسات والأسعار</Label>
+                  <div className="space-y-2">
+                    {(storeForm.size_options_list ?? []).map((opt, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center gap-2 rounded-xl border border-stone-200 bg-stone-50 p-2"
+                      >
+                        <div className="flex flex-1 items-center gap-2">
+                          <div className="flex-1 space-y-0.5">
+                            <span className="text-[10px] font-medium text-stone-500">
+                              الحجم (مل)
+                            </span>
+                            <Input
+                              type="number"
+                              dir="ltr"
+                              className="h-9 text-sm"
+                              placeholder="50"
+                              value={opt.volume_ml || ""}
+                              onFocus={(e) => e.target.select()}
+                              onChange={(e) => {
+                                const list = [
+                                  ...(storeForm.size_options_list ?? []),
+                                ];
+                                list[idx] = {
+                                  ...list[idx],
+                                  volume_ml: e.target.value === "" ? ("" as unknown as number) : Number(e.target.value),
+                                };
+                                setStoreForm({
+                                  ...storeForm,
+                                  size_options_list: list,
+                                });
+                              }}
+                            />
+                          </div>
+                          <div className="flex-1 space-y-0.5">
+                            <span className="text-[10px] font-medium text-stone-500">
+                              السعر (د.ت)
+                            </span>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              dir="ltr"
+                              className="h-9 text-sm"
+                              placeholder="25.00"
+                              value={opt.price || ""}
+                              onFocus={(e) => e.target.select()}
+                              onChange={(e) => {
+                                const list = [
+                                  ...(storeForm.size_options_list ?? []),
+                                ];
+                                list[idx] = {
+                                  ...list[idx],
+                                  price: e.target.value === "" ? ("" as unknown as number) : Number(e.target.value),
+                                };
+                                setStoreForm({
+                                  ...storeForm,
+                                  size_options_list: list,
+                                });
+                              }}
+                            />
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="mt-3.5 size-9 shrink-0 border-red-200 p-0 text-red-500 hover:bg-red-50 hover:text-red-700"
+                          onClick={() => {
+                            const list = [
+                              ...(storeForm.size_options_list ?? []),
+                            ];
+                            list.splice(idx, 1);
+                            setStoreForm({
+                              ...storeForm,
+                              size_options_list: list,
+                            });
+                          }}
+                        >
+                          ✕
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full border-dashed"
+                    onClick={() =>
+                      setStoreForm({
+                        ...storeForm,
+                        size_options_list: [
+                          ...(storeForm.size_options_list ?? []),
+                          { volume_ml: "" as unknown as number, price: "" as unknown as number },
+                        ],
+                      })
+                    }
+                  >
+                    + إضافة مقاس
+                  </Button>
+                </div>
+              )}
               <div className="space-y-1">
                 <Label>الفئة</Label>
                 <select
@@ -1077,9 +1321,9 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                     })
                   }
                 >
-                  <option value="original_bottle">قوارير أصلية</option>
-                  <option value="prefilled_bottle">قوارير معبأة</option>
-                  <option value="air_freshener">معطّرات جو</option>
+                  <option value="original_bottle">عطور اصلية</option>
+                  <option value="prefilled_bottle">عطور مركبة</option>
+                  <option value="air_freshener">عطور الجو</option>
                 </select>
               </div>
               <div className="space-y-1">

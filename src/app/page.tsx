@@ -94,128 +94,115 @@ export default function Home() {
               <path d="M9 10h6" />
             </svg>
             <span className="relative drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)]">
-              صمّم عطرك الآن
+              صمّم عطرك المخصّص
             </span>
           </Link>
 
-          {/* المتجر — إطار متدرّج زجاجي */}
-          <div className="relative w-full rounded-2xl bg-[linear-gradient(135deg,#D4A84B_0%,#f5e0a8_45%,#8F6B28_100%)] p-px shadow-[0_12px_28px_-10px_rgba(143,107,40,0.35)] transition duration-300 hover:shadow-[0_18px_36px_-12px_rgba(143,107,40,0.42)] sm:w-auto">
-            <Link
-              href="/store"
-              prefetch
-              className="flex h-[3.25rem] w-full min-w-[14rem] items-center justify-center gap-2 rounded-[0.9375rem] bg-white/88 px-7 text-[0.95rem] font-bold text-[#5c4420] no-underline backdrop-blur-md transition duration-300 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:bg-white/95 hover:text-[#3d2c12] active:translate-y-0 sm:h-14 sm:min-w-[15rem] sm:px-8 sm:text-base"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                className="size-[1.15rem] text-[#A67C2E]"
-                stroke="currentColor"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden
-              >
-                <path d="M6 6h15l-1.5 9h-12z" />
-                <path d="M6 6 5 3H2" />
-                <circle cx="9" cy="20" r="1" />
-                <circle cx="18" cy="20" r="1" />
-              </svg>
-              المتجر
-            </Link>
-          </div>
-
-          {/* هاتف — قرص أنيق */}
-          <a
-            href="tel:+21658415506"
-            aria-label="اتصل بنا على الرقم +216 58 415 506"
-            className="group flex h-[3.25rem] w-full min-w-[14rem] items-center justify-center gap-3 rounded-2xl border border-stone-200/70 bg-gradient-to-b from-white via-white to-stone-50/95 px-5 text-[0.9rem] font-semibold text-stone-800 no-underline shadow-[0_8px_24px_-8px_rgba(28,25,23,0.12),inset_0_1px_0_rgba(255,255,255,0.9)] ring-1 ring-stone-900/[0.04] transition duration-300 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:border-[#D4A84B]/45 hover:shadow-[0_14px_32px_-10px_rgba(212,168,75,0.28)] active:translate-y-0 sm:h-14 sm:w-auto sm:min-w-[15.5rem] sm:px-6 sm:text-[0.95rem]"
-          >
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#D4A84B]/20 via-white to-[#8F6B28]/15 text-[#7a5a22] shadow-inner ring-1 ring-[#D4A84B]/25 transition group-hover:from-[#D4A84B]/30 group-hover:text-[#5c4420]">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="size-[1.05rem]"
-                aria-hidden
-              >
-                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-              </svg>
-            </span>
-            <span
-              dir="ltr"
-              className="shrink-0 text-center font-bold tabular-nums tracking-wide text-stone-800"
-            >
-              +216 58 415 506
-            </span>
-          </a>
         </div>
       </section>
 
-      {/* Features */}
-      <section className="animate-fade-up-4 relative z-10 mx-auto w-full max-w-6xl px-5 pb-[max(2rem,env(safe-area-inset-bottom))] sm:px-8">
-        <ul className="grid gap-3 sm:grid-cols-3 sm:gap-5">
-          <li className="group overflow-hidden rounded-2xl border border-stone-200/80 bg-white/80 shadow-sm backdrop-blur-sm transition hover:border-[#D4A84B]/30 hover:shadow-lg">
-            <div className="relative h-28 w-full overflow-hidden sm:h-32">
-              <Image
-                src="/feature-1.png"
-                alt="سعر شفّاف"
-                fill
-                className="object-cover transition-transform duration-500 group-hover:scale-110"
-                sizes="(max-width: 640px) 92vw, 280px"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-            </div>
-            <div className="p-4">
-              <p className="font-semibold text-stone-900">سعر شفّاف</p>
-              <p className="mt-1 text-sm leading-relaxed text-stone-500">
-                السعر يتحدّث مباشرة مع كل غرام تختاره — بلا مفاجآت.
-              </p>
-            </div>
-          </li>
+      {/* Direct shopping */}
+      <section id="store" className="animate-fade-up-4 relative z-10 mx-auto w-full max-w-6xl px-5 pb-[max(2rem,env(safe-area-inset-bottom))] sm:px-8">
+        <div className="mb-10 text-center">
+          <p className="text-xs font-bold tracking-[0.3em] text-[#A67C2E]">
+            ORIX STORE
+          </p>
+          <h2 className="mt-3 text-3xl font-black text-stone-900 sm:text-4xl">
+            تسوّق مباشرة
+          </h2>
+          <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-stone-500 sm:text-base">
+            عطور جاهزة، ومعطّرات جو — اختر الباب واكتشف المنتجات.
+          </p>
+        </div>
 
-          <li className="group overflow-hidden rounded-2xl border border-stone-200/80 bg-white/80 shadow-sm backdrop-blur-sm transition hover:border-[#D4A84B]/30 hover:shadow-lg">
-            <div className="relative h-28 w-full overflow-hidden sm:h-32">
-              <Image
-                src="/feature-2.png"
-                alt="تصميم بصري"
-                fill
-                className="object-cover transition-transform duration-500 group-hover:scale-110"
-                sizes="(max-width: 640px) 92vw, 280px"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+        <div className="grid gap-5 sm:grid-cols-3">
+          <Link
+            href="/store/original-bottles"
+            className="group relative isolate flex min-h-[22rem] flex-col justify-end overflow-hidden rounded-[1.75rem] sm:min-h-[26rem]"
+          >
+            <Image
+              src="/store-categories/original-bottles.jpg"
+              alt="عطور اصلية"
+              fill
+              className="object-cover transition-transform duration-[800ms] ease-out group-hover:scale-[1.08]"
+              sizes="(max-width: 640px) 92vw, 360px"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-stone-950/90 via-stone-900/40 to-transparent" />
+            <div className="absolute inset-0 rounded-[1.75rem] ring-1 ring-inset ring-white/[0.06] transition duration-500 group-hover:ring-[#D4A84B]/25" />
+            <div className="relative z-10 flex items-end justify-between gap-3 p-6">
+              <div>
+                <p className="mb-1 text-[10px] font-bold tracking-[0.25em] text-[#D4A84B]/70">٠١</p>
+                <h3 className="text-[1.35rem] font-extrabold leading-tight text-white">
+                  عطور اصلية
+                </h3>
+                <p className="mt-1.5 text-[13px] leading-snug text-white/50">
+                  زجاج فاخر وجودة عالية
+                </p>
+              </div>
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white/70 backdrop-blur-sm transition duration-300 group-hover:border-[#D4A84B]/40 group-hover:bg-[#D4A84B]/20 group-hover:text-[#D4A84B]" aria-hidden>
+                ←
+              </span>
             </div>
-            <div className="p-4">
-              <p className="font-semibold text-stone-900">تصميم بصري</p>
-              <p className="mt-1 text-sm leading-relaxed text-stone-500">
-                صور حقيقية للقوارير والزيوت تسهّل عليك الاختيار.
-              </p>
-            </div>
-          </li>
+          </Link>
 
-          <li className="group overflow-hidden rounded-2xl border border-stone-200/80 bg-white/80 shadow-sm backdrop-blur-sm transition hover:border-[#D4A84B]/30 hover:shadow-lg">
-            <div className="relative h-28 w-full overflow-hidden sm:h-32">
-              <Image
-                src="/feature-3.png"
-                alt="طلب فوري"
-                fill
-                className="object-cover transition-transform duration-500 group-hover:scale-110"
-                sizes="(max-width: 640px) 92vw, 280px"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+          <Link
+            href="/store/prefilled-bottles"
+            className="group relative isolate flex min-h-[22rem] flex-col justify-end overflow-hidden rounded-[1.75rem] sm:min-h-[26rem]"
+          >
+            <Image
+              src="/store-categories/prefilled-bottles.jpg"
+              alt="عطور مركبة"
+              fill
+              className="object-cover transition-transform duration-[800ms] ease-out group-hover:scale-[1.08]"
+              sizes="(max-width: 640px) 92vw, 360px"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-stone-950/90 via-stone-900/40 to-transparent" />
+            <div className="absolute inset-0 rounded-[1.75rem] ring-1 ring-inset ring-white/[0.06] transition duration-500 group-hover:ring-[#D4A84B]/25" />
+            <div className="relative z-10 flex items-end justify-between gap-3 p-6">
+              <div>
+                <p className="mb-1 text-[10px] font-bold tracking-[0.25em] text-[#D4A84B]/70">٠٢</p>
+                <h3 className="text-[1.35rem] font-extrabold leading-tight text-white">
+                  عطور مركبة
+                </h3>
+                <p className="mt-1.5 text-[13px] leading-snug text-white/50">
+                  جاهزة بالكمية والتركيبة
+                </p>
+              </div>
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white/70 backdrop-blur-sm transition duration-300 group-hover:border-[#D4A84B]/40 group-hover:bg-[#D4A84B]/20 group-hover:text-[#D4A84B]" aria-hidden>
+                ←
+              </span>
             </div>
-            <div className="p-4">
-              <p className="font-semibold text-stone-900">طلب فوري</p>
-              <p className="mt-1 text-sm leading-relaxed text-stone-500">
-                أدخل رقمك وأكّد — نتّصل بك خلال ساعات للمراجعة والتوصيل.
-              </p>
+          </Link>
+
+          <Link
+            href="/store/air-freshener"
+            className="group relative isolate flex min-h-[22rem] flex-col justify-end overflow-hidden rounded-[1.75rem] sm:min-h-[26rem]"
+          >
+            <Image
+              src="/store-categories/air-freshener.avif"
+              alt="عطور الجو"
+              fill
+              className="object-cover transition-transform duration-[800ms] ease-out group-hover:scale-[1.08]"
+              sizes="(max-width: 640px) 92vw, 360px"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-stone-950/90 via-stone-900/40 to-transparent" />
+            <div className="absolute inset-0 rounded-[1.75rem] ring-1 ring-inset ring-white/[0.06] transition duration-500 group-hover:ring-[#D4A84B]/25" />
+            <div className="relative z-10 flex items-end justify-between gap-3 p-6">
+              <div>
+                <p className="mb-1 text-[10px] font-bold tracking-[0.25em] text-[#D4A84B]/70">٠٣</p>
+                <h3 className="text-[1.35rem] font-extrabold leading-tight text-white">
+                  عطور الجو
+                </h3>
+                <p className="mt-1.5 text-[13px] leading-snug text-white/50">
+                  للمساحات والسيارة
+                </p>
+              </div>
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white/70 backdrop-blur-sm transition duration-300 group-hover:border-[#D4A84B]/40 group-hover:bg-[#D4A84B]/20 group-hover:text-[#D4A84B]" aria-hidden>
+                ←
+              </span>
             </div>
-          </li>
-        </ul>
+          </Link>
+        </div>
       </section>
 
       {/* Footer */}

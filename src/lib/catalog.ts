@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { MOCK_BOTTLES, MOCK_INGREDIENTS } from "@/lib/mock-catalog";
 import type { Bottle, Ingredient } from "@/types";
 
 export async function getCatalog(): Promise<{
@@ -8,7 +7,7 @@ export async function getCatalog(): Promise<{
 }> {
   const supabase = await createClient();
   if (!supabase) {
-    return { bottles: MOCK_BOTTLES, ingredients: MOCK_INGREDIENTS };
+    return { bottles: [], ingredients: [] };
   }
 
   const [{ data: bottles, error: bErr }, { data: ingredients, error: iErr }] =
@@ -26,12 +25,8 @@ export async function getCatalog(): Promise<{
         .order("name"),
     ]);
 
-  if (bErr || iErr || !bottles?.length || !ingredients?.length) {
-    return { bottles: MOCK_BOTTLES, ingredients: MOCK_INGREDIENTS };
-  }
-
   return {
-    bottles: bottles as Bottle[],
-    ingredients: ingredients as Ingredient[],
+    bottles: bErr ? [] : ((bottles ?? []) as Bottle[]),
+    ingredients: iErr ? [] : ((ingredients ?? []) as Ingredient[]),
   };
 }

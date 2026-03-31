@@ -62,6 +62,7 @@ export async function createStoreOrder(input: {
   storeProductId: string;
   whatsappNumber: string;
   deliveryAddress: string;
+  selectedVolumeMl?: number;
   customerName?: string;
 }) {
   if (input.deliveryAddress.trim().length < 5) {
@@ -76,7 +77,7 @@ export async function createStoreOrder(input: {
 
     const { data: product, error: selErr } = await supabase
       .from("store_products")
-      .select("id, name, price, is_active")
+      .select("id, name, price, size_options, is_active")
       .eq("id", input.storeProductId)
       .maybeSingle();
 
@@ -87,18 +88,27 @@ export async function createStoreOrder(input: {
       };
     }
 
-    const price = Number(product.price);
+    const sizeOptions = Array.isArray(product.size_options)
+      ? (product.size_options as Array<{ volume_ml?: number; price?: number }>)
+      : [];
+    const selected = input.selectedVolumeMl
+      ? sizeOptions.find((s) => Number(s.volume_ml) === Number(input.selectedVolumeMl))
+      : null;
+    const price = Number(selected?.price ?? product.price);
+    const label = selected
+      ? `${product.name} - ${Number(selected.volume_ml)}ml`
+      : product.name;
     const { error } = await supabase.from("orders").insert({
       order_kind: "store",
       store_product_id: product.id,
-      store_product_name_snapshot: product.name,
+      store_product_name_snapshot: label,
       customer_name:
         (input.customerName ?? input.whatsappNumber).trim() || null,
       whatsapp_number: input.whatsappNumber,
       delivery_address: input.deliveryAddress.trim(),
       bottle_id: null,
       recipe: [],
-      sticker_text: product.name,
+      sticker_text: label,
       total_price: price,
       status: "new",
     });

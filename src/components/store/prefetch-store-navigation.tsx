@@ -14,13 +14,11 @@ function scheduleIdle(fn: () => void) {
   }
 }
 
-/** يحمّل مسارات المتجر في وقت الخمول لتصبح النقرات أسرع (RSC جاهزة في الكاش). */
 export function PrefetchStoreHubAndCategories() {
   const router = useRouter();
 
   useEffect(() => {
     scheduleIdle(() => {
-      router.prefetch("/store");
       for (const slug of STORE_CATEGORY_SLUGS) {
         router.prefetch(`/store/${slug}`);
       }
@@ -32,7 +30,6 @@ export function PrefetchStoreHubAndCategories() {
 
 type ProductPrefetchProps = { productIds: string[] };
 
-/** بعد عرض شبكة المنتجات: جلب مسبق لصفحات التفاصيل (حد أعلى لتفادي الضغط على الشبكة). */
 export function PrefetchStoreProductIds({ productIds }: ProductPrefetchProps) {
   const router = useRouter();
   const key = productIds.join(",");
