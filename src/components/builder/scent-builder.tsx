@@ -33,11 +33,7 @@ import {
   usePerfumeStore,
 } from "@/store/perfume-store";
 import { OilSyringeVisual } from "@/components/builder/oil-syringe-visual";
-import {
-  ALCOHOL_PRICE_PER_LITER_DT,
-  buildIngredientMap,
-  computeTotals,
-} from "@/lib/pricing";
+import { buildIngredientMap, computeTotals } from "@/lib/pricing";
 import { applyShareToBottle, decodeShare } from "@/lib/share-state";
 import { createOrder } from "@/app/actions/orders";
 import type { Bottle, Ingredient, IngredientCategory } from "@/types";
@@ -984,14 +980,6 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
                         <span dir="ltr" className="font-semibold text-zinc-700">
                           {selectedIng.price_per_gram.toFixed(2)} د.ت
                         </span>
-                        <span className="mx-2 text-zinc-300" aria-hidden>
-                          ·
-                        </span>
-                        <span className="text-zinc-500">كحول</span>{" "}
-                        <span dir="ltr" className="font-semibold text-zinc-700">
-                          {ALCOHOL_PRICE_PER_LITER_DT} د.ت
-                        </span>
-                        <span className="text-zinc-500"> / لتر</span>
                       </p>
                     </div>
 
@@ -1070,13 +1058,6 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
                                 {totals.ingredientsTotal.toFixed(2)} د.ت
                               </span>
                             </div>
-                            <p className="text-[10px] leading-snug text-zinc-400">
-                              سعر الكحول:{" "}
-                              <span dir="ltr" className="font-medium text-zinc-500">
-                                {ALCOHOL_PRICE_PER_LITER_DT} د.ت
-                              </span>{" "}
-                              للّتر
-                            </p>
                           </>
                         )}
                         <div className="flex justify-between border-t border-zinc-200 pt-1.5 text-zinc-600">

@@ -1,7 +1,7 @@
 import type { Bottle, Ingredient, RecipeItem } from "@/types";
 
-/** سعر الكحول الإيثيلي المعطّر — بالدينار التونسي للّتر الواحد */
-export const ALCOHOL_PRICE_PER_LITER_DT = 20;
+/** سعر الكحول المعطّر للّتر (داخلي للحساب فقط — لا يُعرض للزبون) */
+export const ALCOHOL_PRICE_PER_LITER_DT = 100;
 
 /** سعر التوصيل الثابت — بالدينار التونسي */
 export const DELIVERY_PRICE_DT = 7;
