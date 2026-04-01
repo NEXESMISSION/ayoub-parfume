@@ -492,6 +492,14 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                                       o.bottle_name_snapshot ??
                                       "—")}
                               </span>
+                              {(o.order_kind ?? "custom") === "custom" &&
+                                o.alcohol_fill_requested &&
+                                o.alcohol_fill_ml != null &&
+                                Number(o.alcohol_fill_ml) > 0 && (
+                                  <span className="mt-0.5 block text-[10px] font-medium text-emerald-700" dir="ltr">
+                                    كحول +{Number(o.alcohol_fill_ml).toFixed(1)} مل
+                                  </span>
+                                )}
                             </td>
                             <td className="max-w-[160px] px-3 py-3 text-xs text-stone-600">
                               <span className="line-clamp-3">{o.delivery_address ?? "—"}</span>
@@ -582,6 +590,14 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                                   o.bottle_name_snapshot ??
                                   "—")}
                           </span>
+                          {(o.order_kind ?? "custom") === "custom" &&
+                            o.alcohol_fill_requested &&
+                            o.alcohol_fill_ml != null &&
+                            Number(o.alcohol_fill_ml) > 0 && (
+                              <span className="mt-1 block text-[10px] text-emerald-700" dir="ltr">
+                                كحول +{Number(o.alcohol_fill_ml).toFixed(1)} مل
+                              </span>
+                            )}
                         </p>
                         {o.delivery_address && (
                           <p className="mb-3 line-clamp-3 text-xs text-stone-500">

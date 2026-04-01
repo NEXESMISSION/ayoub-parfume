@@ -7,7 +7,7 @@ export function buildWhatsAppMessage(params: {
 }) {
   const cur = params.currency ?? "TND";
   const recipe = params.recipeLines
-    .map((l) => `• ${l.name}: ${l.grams}g`)
+    .map((l) => `• ${l.name}: ${l.grams}ml`)
     .join("\n");
   return `Hello 👋
 Order ID: #${params.orderId.slice(0, 8)}

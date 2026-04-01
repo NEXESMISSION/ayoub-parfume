@@ -14,6 +14,8 @@ export async function createOrder(input: {
   stickerText: string;
   totalPrice: number;
   deliveryAddress: string;
+  alcoholFillRequested?: boolean;
+  alcoholFillMl?: number | null;
 }) {
   try {
     const supabase = await createClient();
@@ -40,6 +42,11 @@ export async function createOrder(input: {
       sticker_text: input.stickerText,
       total_price: input.totalPrice,
       status: "new",
+      alcohol_fill_requested: Boolean(input.alcoholFillRequested),
+      alcohol_fill_ml:
+        input.alcoholFillMl != null && Number.isFinite(input.alcoholFillMl)
+          ? Number(input.alcoholFillMl)
+          : null,
     });
 
     if (error) {

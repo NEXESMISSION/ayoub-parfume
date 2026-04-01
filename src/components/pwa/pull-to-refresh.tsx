@@ -1,11 +1,32 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 const THRESHOLD = 72;
 const MAX_PULL = 130;
 /** مقاومة السحب — يحتاج سحباً أطول كما في التطبيقات */
 const RESISTANCE = 0.42;
+
+/** لمس داخل منطقة تمرير داخلية (مثل منشئ العطر) — window.scrollY يبقى 0 فلا نفعّل السحب للتحديث */
+function isInsideVerticalScrollContainer(target: EventTarget | null): boolean {
+  if (!target || !(target instanceof Element)) return false;
+  let node: Element | null = target;
+  while (node) {
+    if (node === document.documentElement || node === document.body) break;
+    const el = node as HTMLElement;
+    const st = window.getComputedStyle(el);
+    const oy = st.overflowY;
+    if (
+      (oy === "auto" || oy === "scroll" || oy === "overlay") &&
+      el.scrollHeight > el.clientHeight + 2
+    ) {
+      return true;
+    }
+    node = el.parentElement;
+  }
+  return false;
+}
 
 function isStandaloneDisplay(): boolean {
   if (typeof window === "undefined") return false;
@@ -21,6 +42,7 @@ function isStandaloneDisplay(): boolean {
  * سحب للأسفل من أعلى الصفحة (عند scrollY ≈ 0) لتحديث كامل — يعمل في وضع PWA فقط.
  */
 export function PullToRefresh() {
+  const pathname = usePathname();
   const [enabled, setEnabled] = useState(false);
   const [pull, setPull] = useState(0);
   const startY = useRef<number | null>(null);
@@ -36,8 +58,11 @@ export function PullToRefresh() {
 
   useEffect(() => {
     if (!enabled) return;
+    /** صفحة المنشئ: تمرير داخلي فقط — تعطيل السحب للتحديث بالكامل */
+    if (pathname === "/build") return;
 
     const onStart = (e: TouchEvent) => {
+      if (isInsideVerticalScrollContainer(e.target)) return;
       if (window.scrollY > 6) return;
       startY.current = e.touches[0].clientY;
     };
@@ -85,9 +110,9 @@ export function PullToRefresh() {
       document.removeEventListener("touchend", onEnd);
       document.removeEventListener("touchcancel", onEnd);
     };
-  }, [enabled]);
+  }, [enabled, pathname]);
 
-  if (!enabled) return null;
+  if (!enabled || pathname === "/build") return null;
 
   const progress = Math.min(pull / THRESHOLD, 1);
   const showHint = pull > 8;

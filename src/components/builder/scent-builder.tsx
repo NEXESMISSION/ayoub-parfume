@@ -2,8 +2,11 @@
 
 import {
   useEffect,
+  useId,
   useMemo,
+  useRef,
   useState,
+  type ReactNode,
 } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -14,17 +17,27 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
-  Info,
   Minus,
   Plus,
   Search,
 } from "lucide-react";
 import {
-  OIL_GRAMS_MAX,
   OIL_GRAMS_MIN,
+  OIL_ML_MIN,
+  OIL_ML_STEP,
+  OIL_PRESET_PERCENT_EDP,
+  OIL_PRESET_PERCENT_EDT,
+  OIL_PRESET_PERCENT_EXTRAIT,
+  maxOilMlForBottle,
+  oilMlFromBottlePercent,
   usePerfumeStore,
 } from "@/store/perfume-store";
-import { buildIngredientMap, computeTotals } from "@/lib/pricing";
+import { OilSyringeVisual } from "@/components/builder/oil-syringe-visual";
+import {
+  ALCOHOL_PRICE_PER_LITER_DT,
+  buildIngredientMap,
+  computeTotals,
+} from "@/lib/pricing";
 import { applyShareToBottle, decodeShare } from "@/lib/share-state";
 import { createOrder } from "@/app/actions/orders";
 import type { Bottle, Ingredient, IngredientCategory } from "@/types";
@@ -46,10 +59,138 @@ import { cn } from "@/lib/utils";
 
 const STEP_TITLES = [
   "اختر القارورة",
-  "اختر المكوّن",
-  "الكمية والحجم",
+  "اختر العطر الزيتي",
+  "الكمية بالمل",
   "الهاتف والتأكيد",
 ];
+
+/** قارورة فارغة — توضيح بصري للخطوة الأولى */
+function EmptyBottleIllustration({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 140 220"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      aria-hidden
+    >
+      <defs>
+        <linearGradient id="empty-bottle-glass" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="rgb(228 228 231)" stopOpacity="0.5" />
+          <stop offset="50%" stopColor="rgb(244 244 245)" stopOpacity="0.35" />
+          <stop offset="100%" stopColor="rgb(212 212 216)" stopOpacity="0.45" />
+        </linearGradient>
+        <linearGradient id="empty-bottle-cap" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#d4d4d8" />
+          <stop offset="100%" stopColor="#a1a1aa" />
+        </linearGradient>
+      </defs>
+      <rect x="48" y="12" width="44" height="22" rx="4" fill="url(#empty-bottle-cap)" />
+      <rect x="58" y="34" width="24" height="10" rx="2" fill="#e4e4e7" />
+      <path
+        d="M42 48h56c4 0 8 3 8 8v142c0 10-8 18-18 18H52c-10 0-18-8-18-18V56c0-5 4-8 8-8z"
+        fill="url(#empty-bottle-glass)"
+        stroke="#d4d4d8"
+        strokeWidth="2.5"
+      />
+      <path
+        d="M52 68h36v100c0 6-4 10-10 10H62c-6 0-10-4-10-10V68z"
+        fill="rgb(250 250 250 / 0.6)"
+        stroke="#e4e4e7"
+        strokeWidth="1"
+        strokeDasharray="4 3"
+      />
+      <text
+        x="70"
+        y="128"
+        textAnchor="middle"
+        fill="#a1a1aa"
+        style={{ fontFamily: "system-ui, sans-serif", fontSize: "12px", fontWeight: 700 }}
+      >
+        فارغة
+      </text>
+    </svg>
+  );
+}
+
+function StepHeroTile({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="mb-4 shrink-0 rounded-2xl border-2 border-zinc-200/90 bg-gradient-to-b from-white to-zinc-50/80 px-4 py-4 text-center shadow-[0_4px_20px_-8px_rgba(0,0,0,0.08)] sm:px-5 sm:py-5">
+      {children}
+      <h2 className="mt-2 text-2xl font-black leading-[1.15] tracking-tight text-zinc-900 sm:text-[1.65rem] md:text-3xl">
+        {title}
+      </h2>
+      {subtitle ? (
+        <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-zinc-500">
+          {subtitle}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+/** زجاجة عطر زيتي مركّز — أيقونة خطوة اختيار المكوّن الزيتي */
+function OilIngredientBottleIllustration({ className }: { className?: string }) {
+  const uid = useId().replace(/:/g, "");
+  const gLiquid = `oil-liq-${uid}`;
+  const gGlass = `oil-glass-${uid}`;
+  const gCap = `oil-cap-${uid}`;
+  return (
+    <svg
+      viewBox="0 0 120 136"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      aria-hidden
+    >
+      <defs>
+        <linearGradient id={gLiquid} x1="0%" y1="100%" x2="0%" y2="0%">
+          <stop offset="0%" stopColor="#8F6B28" />
+          <stop offset="55%" stopColor="#D4A84B" />
+          <stop offset="100%" stopColor="#F0D78C" />
+        </linearGradient>
+        <linearGradient id={gGlass} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="rgb(255 255 255 / 0.5)" />
+          <stop offset="50%" stopColor="rgb(255 255 255 / 0.08)" />
+          <stop offset="100%" stopColor="rgb(228 228 231 / 0.35)" />
+        </linearGradient>
+        <linearGradient id={gCap} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#3f3f46" />
+          <stop offset="100%" stopColor="#18181b" />
+        </linearGradient>
+      </defs>
+      <path
+        d="M60 6h12v14c0 2-1.2 3.8-3 4.5L62 28v6h16v8H42v-8h16v-6l-7-3.5a5 5 0 0 1-3-4.5V6h12z"
+        fill={`url(#${gCap})`}
+      />
+      <rect x="52" y="34" width="16" height="8" rx="2" fill="#d4d4d8" />
+      <path
+        d="M44 42h32c6 0 10 4.5 10 10.5v58c0 12-9.5 21.5-21.5 21.5h-9C43.5 132 34 122.5 34 110.5v-58C34 46.5 38 42 44 42z"
+        fill={`url(#${gGlass})`}
+        stroke="#c4c4c9"
+        strokeWidth="2"
+      />
+      <path
+        d="M46 72h28v38c0 8.5-6.5 15-15 15s-15-6.5-15-15V72z"
+        fill={`url(#${gLiquid})`}
+        opacity="0.88"
+      />
+      <ellipse cx="52" cy="78" rx="5" ry="14" fill="white" opacity="0.25" />
+      <path
+        d="M48 48h24v6H48z"
+        fill="rgb(255 255 255 / 0.25)"
+      />
+    </svg>
+  );
+}
 
 const panel =
   "rounded-2xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)]";
@@ -235,6 +376,7 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
   const [address, setAddress] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [successOpen, setSuccessOpen] = useState(false);
+  const [addressShortOpen, setAddressShortOpen] = useState(false);
   const [confirmedPhone, setConfirmedPhone] = useState("");
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [ingSearch, setIngSearch] = useState("");
@@ -242,11 +384,38 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
     "all",
   );
 
+  const mainScrollRef = useRef<HTMLDivElement>(null);
+  const oilCapMl = useMemo(() => maxOilMlForBottle(bottle), [bottle]);
+  const oilPresets = useMemo(() => {
+    if (!bottle)
+      return {
+        edt: OIL_GRAMS_MIN,
+        edp: OIL_GRAMS_MIN,
+        extrait: OIL_GRAMS_MIN,
+      };
+    return {
+      edt: oilMlFromBottlePercent(bottle, OIL_PRESET_PERCENT_EDT),
+      edp: oilMlFromBottlePercent(bottle, OIL_PRESET_PERCENT_EDP),
+      extrait: oilMlFromBottlePercent(bottle, OIL_PRESET_PERCENT_EXTRAIT),
+    };
+  }, [bottle]);
+
   useEffect(() => {
-    const prev = document.body.style.overflow;
+    const el = mainScrollRef.current;
+    if (el) el.scrollTop = 0;
+  }, [step]);
+
+  useEffect(() => {
+    const prevOverflow = document.body.style.overflow;
+    const prevHtmlOs = document.documentElement.style.overscrollBehaviorY;
+    const prevBodyOs = document.body.style.overscrollBehaviorY;
     document.body.style.overflow = "hidden";
+    document.documentElement.style.overscrollBehaviorY = "none";
+    document.body.style.overscrollBehaviorY = "none";
     return () => {
-      document.body.style.overflow = prev;
+      document.body.style.overflow = prevOverflow;
+      document.documentElement.style.overscrollBehaviorY = prevHtmlOs;
+      document.body.style.overscrollBehaviorY = prevBodyOs;
     };
   }, []);
 
@@ -297,16 +466,21 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
 
   const onSubmit = async () => {
     setSubmitError(null);
+    if (address.trim().length < 5) {
+      setAddressShortOpen(true);
+      return;
+    }
     if (
       !bottle ||
       phoneDigits.length < 8 ||
-      address.trim().length < 5 ||
       !recipe.length ||
       totals.overCapacity
     )
       return;
     setSubmitting(true);
     try {
+      const alcoholMl =
+        totals.remainingMl > 0 ? totals.remainingMl : null;
       const res = await createOrder({
         customerName: phoneDigits,
         whatsappNumber: phoneDigits,
@@ -316,6 +490,8 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
         stickerText: "",
         totalPrice: totals.totalPrice,
         deliveryAddress: address.trim(),
+        alcoholFillRequested: alcoholMl != null,
+        alcoholFillMl: alcoholMl,
       });
       if (res.ok) {
         setConfirmedPhone(phoneDigits);
@@ -394,11 +570,17 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
           </div>
         </header>
 
-        {/* ── Main ── */}
+        {/* ── Main: منطقة تمرير واحدة (عمودي + أفقي عند الحاجة) لكل الخطوات ── */}
         <main className="flex min-h-0 flex-1 flex-col overflow-hidden px-3 py-2 sm:px-4">
-          <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col overflow-hidden">
+          <div
+            ref={mainScrollRef}
+            className={cn(
+              "relative z-0 mx-auto min-h-0 w-full max-w-4xl flex-1 touch-pan-y overflow-y-auto overflow-x-hidden overscroll-y-none",
+              "[-webkit-overflow-scrolling:touch]",
+            )}
+          >
             <AnimatePresence mode="wait">
-              {/* Step 0 — Bottles (scrollable grid) */}
+              {/* Step 0 — Bottles */}
               {step === 0 && (
                 <motion.section
                   key="s0"
@@ -407,14 +589,21 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
                   animate="animate"
                   exit="exit"
                   transition={stepTransition}
-                  className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-1"
+                  style={{ height: "auto", minHeight: "min-content" }}
+                  className="block w-full min-h-0 min-w-0 space-y-3 pb-24"
                 >
+                  <StepHeroTile
+                    title="اختر قارورتك"
+                    subtitle="هذه خطوتك الأولى: القارورة تبدأ فارغة — بعدها تختار الزيت ثم الكمية. مرّر لأسفل لرؤية كل القوارير."
+                  >
+                    <EmptyBottleIllustration className="mx-auto h-36 w-28 sm:h-40 sm:w-32" />
+                  </StepHeroTile>
                   {bottles.length === 0 ? (
                     <p className="py-8 text-center text-sm text-zinc-400">
                       لا توجد قوارير متاحة حالياً.
                     </p>
                   ) : (
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                    <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
                       {bottles.map((b) => (
                         <BottleTile
                           key={b.id}
@@ -437,9 +626,16 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
                   animate="animate"
                   exit="exit"
                   transition={stepTransition}
-                  className="flex min-h-0 flex-1 flex-col overflow-hidden"
+                  style={{ height: "auto", minHeight: "min-content" }}
+                  className="block w-full min-h-0 min-w-0 space-y-3 pb-24"
                 >
-                  <div className="mb-2 flex shrink-0 flex-wrap justify-center gap-1.5 px-0.5">
+                  <StepHeroTile
+                    title="اختر العطر الزيتي"
+                    subtitle="المكوّن الزيتي هو رائحة عطرك — اختر الرائحة التي تعجبك من القائمة أدناه."
+                  >
+                    <OilIngredientBottleIllustration className="mx-auto h-[5.5rem] w-[5.25rem] sm:h-28 sm:w-28" />
+                  </StepHeroTile>
+                  <div className="flex flex-wrap justify-center gap-1.5 px-0.5">
                     <button
                       type="button"
                       onClick={() => setIngAudience("all")}
@@ -468,7 +664,7 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
                       </button>
                     ))}
                   </div>
-                  <div className="relative mx-auto mb-2 w-full max-w-md shrink-0">
+                  <div className="relative mx-auto w-full max-w-md">
                     <Search className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
                     <Input
                       type="search"
@@ -480,24 +676,22 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
                     />
                   </div>
 
-                  <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-1">
-                    {filteredIngredients.length === 0 ? (
-                      <p className="py-6 text-center text-sm text-zinc-400">
-                        لا نتائج
-                      </p>
-                    ) : (
-                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-                        {filteredIngredients.map((ing) => (
-                          <IngTile
-                            key={ing.id}
-                            ing={ing}
-                            active={selected?.ingredientId === ing.id}
-                            onPick={() => selectIngredient(ing.id)}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  {filteredIngredients.length === 0 ? (
+                    <p className="py-6 text-center text-sm text-zinc-400">
+                      لا نتائج
+                    </p>
+                  ) : (
+                    <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                      {filteredIngredients.map((ing) => (
+                        <IngTile
+                          key={ing.id}
+                          ing={ing}
+                          active={selected?.ingredientId === ing.id}
+                          onPick={() => selectIngredient(ing.id)}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </motion.section>
               )}
 
@@ -510,97 +704,200 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
                   animate="animate"
                   exit="exit"
                   transition={stepTransition}
-                  className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden"
+                  style={{ height: "auto", minHeight: "min-content" }}
+                  className="block w-full min-h-0 min-w-0 space-y-3 pb-24"
                 >
-                  <div
-                    className={cn("w-full max-w-sm space-y-3 p-4", panel)}
-                  >
-                    <div className="flex gap-2 rounded-xl border border-[#C5973E]/25 bg-gradient-to-br from-[#fdf8ee] to-[#f5ebe0]/90 px-3 py-2.5 shadow-sm shadow-amber-900/5">
-                      <Info
-                        className="size-4 shrink-0 text-[#8F6B28]"
-                        strokeWidth={2}
-                        aria-hidden
-                      />
-                      <div className="min-w-0 text-start">
-                        <p className="text-[10px] font-bold text-[#5c4420]">
-                          موصى به
-                        </p>
-                        <p className="mt-0.5 text-[10px] leading-relaxed text-[#6b5340]">
-                          غالباً تكفي{" "}
-                          <span dir="ltr" className="tabular-nums font-semibold">
-                            5–15 غ
-                          </span>{" "}
-                          للعطور الشخصية حسب القارورة؛ لا تتجاوز سعة القارورة
-                          بالمليلتر حتى لا يظهر التحذير أسفل الشريط.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="border-b border-zinc-100 pb-2.5 text-center">
-                      <p className="text-sm font-bold text-zinc-900">
-                        {selectedIng.name}
-                      </p>
-                      <p className="mt-0.5 text-[11px] text-zinc-500">
-                        كمية الزيت والتكلفة
-                      </p>
-                    </div>
-
-                    <div className="flex flex-wrap items-baseline justify-center gap-x-3 rounded-xl bg-zinc-50 px-3 py-2.5">
-                      <span
-                        className="text-2xl font-bold tabular-nums text-zinc-900"
-                        dir="ltr"
-                      >
-                        {selected.grams}
-                        <span className="ms-0.5 text-sm font-semibold text-zinc-400">
-                          غ
-                        </span>
+                  <div className={cn("flex flex-col gap-3 p-3 sm:p-4", panel)}>
+                    <p className="text-center text-[11px] leading-relaxed text-zinc-500">
+                      اضبط كمية العطر بخطوات {OIL_ML_STEP} مل. الحد الأعلى يطابق
+                      سعة القارورة (
+                      <span dir="ltr" className="font-semibold text-zinc-700">
+                        {oilCapMl} مل
                       </span>
-                      <span className="text-zinc-300">|</span>
-                      <span
-                        className="text-base font-bold tabular-nums text-[#8F6B28]"
-                        dir="ltr"
-                      >
-                        {(
-                          selectedIng.price_per_gram * selected.grams
-                        ).toFixed(2)}{" "}
-                        د.ت
-                      </span>
-                    </div>
-
-                    <p className="text-center text-[11px] text-zinc-500">
-                      سعر الغرام{" "}
-                      <span
-                        dir="ltr"
-                        className="font-medium text-zinc-700"
-                      >
-                        {selectedIng.price_per_gram.toFixed(2)} د.ت
-                      </span>
+                      ).
                     </p>
 
-                    <div className="rounded-xl bg-zinc-100/80 px-3 py-2.5">
-                      <div className="mb-1.5 flex justify-between text-[10px] font-medium text-zinc-500">
-                        <span dir="ltr">
-                          {OIL_GRAMS_MIN} غ
+                    <div className="flex flex-wrap items-stretch justify-center gap-3 sm:gap-4">
+                      <div className="flex w-[100px] shrink-0 flex-col items-center gap-1 sm:w-[110px]">
+                        <span className="text-[10px] font-bold text-zinc-500">
+                          القارورة
                         </span>
-                        <span dir="ltr">
-                          {OIL_GRAMS_MAX} غ
+                        <div className="relative aspect-square w-full overflow-hidden rounded-xl border-2 border-zinc-200/90 bg-zinc-50">
+                          <BottleImage
+                            src={bottle?.image_url ?? null}
+                            alt={bottle?.name ?? "قارورة"}
+                            className="rounded-lg"
+                          />
+                        </div>
+                        {bottle ? (
+                          <span
+                            dir="ltr"
+                            className="text-[10px] font-semibold tabular-nums text-zinc-600"
+                          >
+                            {bottle.capacity_ml} مل
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="flex w-[100px] shrink-0 flex-col items-center gap-1 sm:w-[110px]">
+                        <span className="text-[10px] font-bold text-zinc-500">
+                          العطر
+                        </span>
+                        <div className="relative aspect-square w-full overflow-hidden rounded-xl border-2 border-[#C5973E]/35 bg-zinc-50">
+                          {selectedIng.image_url ? (
+                            <Image
+                              src={selectedIng.image_url}
+                              alt={selectedIng.name}
+                              fill
+                              className="object-cover"
+                              sizes="110px"
+                              unoptimized
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-2xl text-zinc-300">
+                              ✧
+                            </div>
+                          )}
+                        </div>
+                        <span className="line-clamp-2 text-center text-[10px] font-semibold text-zinc-800">
+                          {selectedIng.name}
                         </span>
                       </div>
-                      <div
-                        dir="ltr"
-                        className="flex items-center gap-2"
-                      >
+                    </div>
+
+                    <div className="flex flex-col items-center gap-1 py-0.5">
+                      <OilSyringeVisual
+                        compact
+                        valueMl={selected.grams}
+                        minMl={OIL_ML_MIN}
+                        maxMl={oilCapMl}
+                      />
+                    </div>
+
+                    <div className="rounded-xl bg-zinc-100/80 px-3 py-2.5">
+                      <div className="mb-3 text-center">
+                        <p className="text-[10px] font-bold text-zinc-500">
+                          الكمية الحالية
+                        </p>
+                        <p
+                          className="mt-0.5 text-[1.75rem] font-black leading-none tabular-nums tracking-tight text-zinc-900 sm:text-3xl"
+                          dir="ltr"
+                        >
+                          {selected.grams.toFixed(0)}
+                          <span className="ms-1.5 text-base font-bold text-zinc-500 sm:text-lg">
+                            مل
+                          </span>
+                        </p>
+                      </div>
+                      {bottle ? (
+                        <div className="mb-3 space-y-2">
+                          <p className="text-center text-[10px] font-bold text-zinc-600">
+                            اختيار سريع — نسبة من سعة القارورة (
+                            <span dir="ltr" className="tabular-nums">
+                              {bottle.capacity_ml}
+                            </span>{" "}
+                            مل)
+                          </p>
+                          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => setGrams(oilPresets.edt)}
+                              className={cn(
+                                "h-auto min-h-[4.25rem] flex-col gap-0.5 rounded-xl border-2 px-2 py-2 text-center shadow-none transition",
+                                selected.grams === oilPresets.edt
+                                  ? "border-[#C5973E] bg-[#fdf8ee] ring-1 ring-[#C5973E]/20"
+                                  : "border-zinc-200/90 bg-white hover:bg-zinc-50",
+                              )}
+                            >
+                              <span className="text-[11px] font-bold text-zinc-900">
+                                عادي
+                              </span>
+                              <span className="text-[9px] leading-tight text-zinc-500">
+                                Eau de toilette ·{" "}
+                                <span dir="ltr">{OIL_PRESET_PERCENT_EDT}%</span>
+                              </span>
+                              <span
+                                dir="ltr"
+                                className="text-sm font-black tabular-nums text-[#8F6B28]"
+                              >
+                                {oilPresets.edt} مل
+                              </span>
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => setGrams(oilPresets.edp)}
+                              className={cn(
+                                "h-auto min-h-[4.25rem] flex-col gap-0.5 rounded-xl border-2 px-2 py-2 text-center shadow-none transition",
+                                selected.grams === oilPresets.edp
+                                  ? "border-[#C5973E] bg-[#fdf8ee] ring-1 ring-[#C5973E]/20"
+                                  : "border-zinc-200/90 bg-white hover:bg-zinc-50",
+                              )}
+                            >
+                              <span className="text-[11px] font-bold text-zinc-900">
+                                مميّز
+                              </span>
+                              <span className="text-[9px] leading-tight text-zinc-500">
+                                Eau de parfum ·{" "}
+                                <span dir="ltr">{OIL_PRESET_PERCENT_EDP}%</span>
+                              </span>
+                              <span
+                                dir="ltr"
+                                className="text-sm font-black tabular-nums text-[#8F6B28]"
+                              >
+                                {oilPresets.edp} مل
+                              </span>
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => setGrams(oilPresets.extrait)}
+                              className={cn(
+                                "h-auto min-h-[4.25rem] flex-col gap-0.5 rounded-xl border-2 px-2 py-2 text-center shadow-none transition",
+                                selected.grams === oilPresets.extrait
+                                  ? "border-[#C5973E] bg-[#fdf8ee] ring-1 ring-[#C5973E]/20"
+                                  : "border-zinc-200/90 bg-white hover:bg-zinc-50",
+                              )}
+                            >
+                              <span className="text-[11px] font-bold text-zinc-900">
+                                مميّز جداً
+                              </span>
+                              <span className="text-[9px] leading-tight text-zinc-500">
+                                Extrait de parfum ·{" "}
+                                <span dir="ltr">
+                                  {OIL_PRESET_PERCENT_EXTRAIT}%
+                                </span>
+                              </span>
+                              <span
+                                dir="ltr"
+                                className="text-sm font-black tabular-nums text-[#8F6B28]"
+                              >
+                                {oilPresets.extrait} مل
+                              </span>
+                            </Button>
+                          </div>
+                          <p className="text-center text-[9px] leading-snug text-zinc-400">
+                            يمكنك أيضاً ضبط الكمية يدوياً بالشريط أدناه (خطوات{" "}
+                            {OIL_ML_STEP} مل).
+                          </p>
+                        </div>
+                      ) : null}
+                      <div className="mb-1.5 flex justify-between text-[10px] font-medium text-zinc-500">
+                        <span dir="ltr">{OIL_ML_MIN} مل</span>
+                        <span dir="ltr">{oilCapMl} مل</span>
+                      </div>
+                      <div dir="ltr" className="flex items-center gap-2">
                         <Button
                           type="button"
                           variant="outline"
                           size="icon"
-                          aria-label="نقص نصف غرام"
+                          aria-label={`نقص ${OIL_ML_STEP} مل`}
                           className="size-9 shrink-0 rounded-lg border-zinc-200 bg-white"
                           onClick={() =>
                             setGrams(
                               Math.max(
                                 OIL_GRAMS_MIN,
-                                selected.grams - 0.5,
+                                selected.grams - OIL_ML_STEP,
                               ),
                             )
                           }
@@ -610,8 +907,8 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
                         <Slider
                           value={[selected.grams]}
                           min={OIL_GRAMS_MIN}
-                          max={OIL_GRAMS_MAX}
-                          step={0.5}
+                          max={oilCapMl}
+                          step={OIL_ML_STEP}
                           size="touch"
                           onValueChange={(v) =>
                             setGrams(v[0] ?? selected.grams)
@@ -622,13 +919,13 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
                           type="button"
                           variant="outline"
                           size="icon"
-                          aria-label="زِد نصف غرام"
+                          aria-label={`زِد ${OIL_ML_STEP} مل`}
                           className="size-9 shrink-0 rounded-lg border-zinc-200 bg-white"
                           onClick={() =>
                             setGrams(
                               Math.min(
-                                OIL_GRAMS_MAX,
-                                selected.grams + 0.5,
+                                oilCapMl,
+                                selected.grams + OIL_ML_STEP,
                               ),
                             )
                           }
@@ -636,6 +933,66 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
                           <Plus className="size-4" strokeWidth={2.5} />
                         </Button>
                       </div>
+                    </div>
+
+                    <div className="rounded-xl border border-zinc-100 bg-gradient-to-b from-white to-zinc-50/90 px-3 py-2.5 text-start shadow-sm">
+                      <dl className="space-y-1.5 text-[11px] sm:space-y-2">
+                        <div className="flex justify-between gap-2 border-b border-zinc-100 pb-1.5">
+                          <dt className="text-zinc-500">كمية العطر</dt>
+                          <dd
+                            dir="ltr"
+                            className="font-bold tabular-nums text-zinc-900"
+                          >
+                            {selected.grams.toFixed(0)} مل
+                          </dd>
+                        </div>
+                        <div className="flex justify-between gap-2 border-b border-zinc-100 pb-1.5">
+                          <dt className="text-zinc-500">
+                            المتبقي في القارورة
+                          </dt>
+                          <dd
+                            dir="ltr"
+                            className="font-bold tabular-nums text-sky-800"
+                          >
+                            {Math.max(0, totals.remainingMl).toFixed(1)} مل
+                          </dd>
+                        </div>
+                        <div className="flex justify-between gap-2 border-b border-zinc-100 pb-1.5">
+                          <dt className="text-zinc-500">تكلفة الكحول</dt>
+                          <dd
+                            dir="ltr"
+                            className="font-bold tabular-nums text-sky-800"
+                          >
+                            {totals.alcoholPrice.toFixed(2)} د.ت
+                          </dd>
+                        </div>
+                        <div className="flex justify-between gap-2">
+                          <dt className="text-zinc-500">تكلفة العطر</dt>
+                          <dd
+                            dir="ltr"
+                            className="font-bold tabular-nums text-[#8F6B28]"
+                          >
+                            {(
+                              selectedIng.price_per_gram * selected.grams
+                            ).toFixed(2)}{" "}
+                            د.ت
+                          </dd>
+                        </div>
+                      </dl>
+                      <p className="mt-2 border-t border-dashed border-zinc-200 pt-2 text-center text-[10px] leading-relaxed text-zinc-400">
+                        <span className="text-zinc-500">سعر المل (العطر)</span>{" "}
+                        <span dir="ltr" className="font-semibold text-zinc-700">
+                          {selectedIng.price_per_gram.toFixed(2)} د.ت
+                        </span>
+                        <span className="mx-2 text-zinc-300" aria-hidden>
+                          ·
+                        </span>
+                        <span className="text-zinc-500">كحول</span>{" "}
+                        <span dir="ltr" className="font-semibold text-zinc-700">
+                          {ALCOHOL_PRICE_PER_LITER_DT} د.ت
+                        </span>
+                        <span className="text-zinc-500"> / لتر</span>
+                      </p>
                     </div>
 
                     {totals.overCapacity && (
@@ -657,11 +1014,25 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
                   animate="animate"
                   exit="exit"
                   transition={stepTransition}
-                  className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden"
+                  style={{ height: "auto", minHeight: "min-content" }}
+                  className="block w-full min-h-0 min-w-0 space-y-3 pb-24"
                 >
                   <div
-                    className={cn("w-full max-w-sm space-y-3 p-4", panel)}
+                    className={cn("mx-auto w-full max-w-sm space-y-3 p-4", panel)}
                   >
+                    <div className="rounded-xl border border-zinc-200/90 bg-gradient-to-b from-zinc-50 to-white px-3 py-3 text-center">
+                      <p className="text-xl font-black text-zinc-900 sm:text-2xl">
+                        أرسل طلبك
+                      </p>
+                      <p className="mt-1 text-[11px] leading-snug text-zinc-500">
+                        راجع الملخص ثم أدخل عنوان التوصيل ورقم الهاتف لنتواصل معك. سعر
+                        التوصيل الثابت{" "}
+                        <span dir="ltr" className="font-semibold text-zinc-700">
+                          {totals.deliveryPrice.toFixed(0)} د.ت
+                        </span>{" "}
+                        يُضاف تلقائياً للمجموع.
+                      </p>
+                    </div>
                     <div>
                       <p className="text-xs font-bold text-zinc-900">
                         ملخص الطلب
@@ -674,9 +1045,50 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
                           </span>
                         </div>
                         <div className="flex justify-between text-zinc-600">
-                          <span>الكمية</span>
+                          <span>العطر (مل)</span>
                           <span dir="ltr" className="tabular-nums">
-                            {selected?.grams.toFixed(1)} غ
+                            {selected?.grams.toFixed(0)} مل
+                          </span>
+                        </div>
+                        {bottle && (
+                          <>
+                            <div className="flex justify-between text-zinc-600">
+                              <span>الكحول المعطّر (مل)</span>
+                              <span dir="ltr" className="tabular-nums">
+                                {Math.max(0, totals.remainingMl).toFixed(1)} مل
+                              </span>
+                            </div>
+                            <div className="flex justify-between text-zinc-600">
+                              <span>تكلفة الكحول</span>
+                              <span dir="ltr" className="tabular-nums">
+                                {totals.alcoholPrice.toFixed(2)} د.ت
+                              </span>
+                            </div>
+                            <div className="flex justify-between text-zinc-600">
+                              <span>تكلفة العطر</span>
+                              <span dir="ltr" className="tabular-nums">
+                                {totals.ingredientsTotal.toFixed(2)} د.ت
+                              </span>
+                            </div>
+                            <p className="text-[10px] leading-snug text-zinc-400">
+                              سعر الكحول:{" "}
+                              <span dir="ltr" className="font-medium text-zinc-500">
+                                {ALCOHOL_PRICE_PER_LITER_DT} د.ت
+                              </span>{" "}
+                              للّتر
+                            </p>
+                          </>
+                        )}
+                        <div className="flex justify-between border-t border-zinc-200 pt-1.5 text-zinc-600">
+                          <span>المجموع (بدون توصيل)</span>
+                          <span dir="ltr" className="tabular-nums">
+                            {totals.subtotal.toFixed(2)} د.ت
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-zinc-600">
+                          <span>التوصيل</span>
+                          <span dir="ltr" className="tabular-nums">
+                            {totals.deliveryPrice.toFixed(2)} د.ت
                           </span>
                         </div>
                         <div className="flex justify-between border-t border-dashed border-zinc-200 pt-1.5 font-semibold text-zinc-900">
@@ -753,9 +1165,10 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
                         className="h-11 w-full rounded-xl bg-gradient-to-b from-[#D4A84B] to-[#A67C2E] text-sm font-bold text-white shadow-md hover:from-[#C9A045] hover:to-[#8F6B28] disabled:opacity-40"
                         disabled={
                           submitting ||
-                          !canNext[3] ||
                           phoneDigits.length < 8 ||
-                          address.trim().length < 5
+                          !bottle ||
+                          !selected ||
+                          totals.overCapacity
                         }
                         onClick={onSubmit}
                       >
@@ -803,6 +1216,35 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
           </div>
         </footer>
       </div>
+
+      {/* ── عنوان التوصيل قصير ── */}
+      <Dialog open={addressShortOpen} onOpenChange={setAddressShortOpen}>
+        <DialogContent className="max-w-sm rounded-2xl border-zinc-200 sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-start text-lg text-zinc-900">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-800">
+                <AlertTriangle className="size-5" strokeWidth={2} />
+              </span>
+              عنوان التوصيل غير كافٍ
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm leading-relaxed text-zinc-600">
+            يرجى كتابة عنوان أوضح للتوصيل (المدينة، الحي، أو أقرب نقطة دالة). الحد
+            الأدنى{" "}
+            <span dir="ltr" className="font-semibold text-zinc-800">
+              5
+            </span>{" "}
+            أحرف — والأفضل تفاصيل أكثر حتى يصل الطلب بسهولة.
+          </p>
+          <Button
+            type="button"
+            className="h-11 w-full rounded-xl bg-zinc-900 text-sm font-semibold text-white hover:bg-zinc-800"
+            onClick={() => setAddressShortOpen(false)}
+          >
+            حسناً، سأعدّل العنوان
+          </Button>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Success Dialog ── */}
       <Dialog open={successOpen} onOpenChange={() => {}}>

@@ -63,7 +63,9 @@ create table if not exists public.orders (
   order_kind text not null default 'custom' check (order_kind in ('custom', 'store')),
   store_product_id uuid references public.store_products(id) on delete set null,
   bottle_name_snapshot text,
-  store_product_name_snapshot text
+  store_product_name_snapshot text,
+  alcohol_fill_requested boolean not null default false,
+  alcohol_fill_ml numeric(10,2)
 );
 
 create table if not exists public.admin_users (

@@ -78,4 +78,6 @@ export type OrderRow = {
   bottle_name_snapshot?: string | null;
   /** نسخة من اسم منتج المتجر عند الطلب */
   store_product_name_snapshot?: string | null;
+  alcohol_fill_requested?: boolean | null;
+  alcohol_fill_ml?: number | null;
 };
