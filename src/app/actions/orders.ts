@@ -31,8 +31,8 @@ export async function createOrder(input: {
       JSON.stringify(input.recipe)
     ) as typeof input.recipe;
 
-    const { error } = await supabase.from("orders").insert({
-      order_kind: "custom",
+    const baseRow = {
+      order_kind: "custom" as const,
       customer_name: input.customerName,
       whatsapp_number: input.whatsappNumber,
       delivery_address: input.deliveryAddress.trim() || null,
@@ -41,13 +41,23 @@ export async function createOrder(input: {
       recipe: recipeJson,
       sticker_text: input.stickerText,
       total_price: input.totalPrice,
-      status: "new",
+      status: "new" as const,
+    };
+
+    const alcoholRow = {
+      ...baseRow,
       alcohol_fill_requested: Boolean(input.alcoholFillRequested),
       alcohol_fill_ml:
         input.alcoholFillMl != null && Number.isFinite(input.alcoholFillMl)
           ? Number(input.alcoholFillMl)
           : null,
-    });
+    };
+
+    let { error } = await supabase.from("orders").insert(alcoholRow);
+
+    if (error && /alcohol_fill/i.test(error.message)) {
+      ({ error } = await supabase.from("orders").insert(baseRow));
+    }
 
     if (error) {
       return { ok: false as const, error: error.message };
