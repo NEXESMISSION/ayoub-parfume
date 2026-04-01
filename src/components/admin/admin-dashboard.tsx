@@ -22,6 +22,7 @@ import {
   deleteStoreProductPermanent,
   saveStoreProduct,
 } from "@/app/actions/store-catalog";
+import { uploadImage } from "@/app/actions/upload-image";
 import type {
   Bottle,
   Ingredient,
@@ -126,7 +127,25 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
   const [savingBottle, setSavingBottle] = useState(false);
   const [savingIng, setSavingIng] = useState(false);
   const [savingStore, setSavingStore] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const newBottleLock = useRef(false);
+
+  async function handleUpload(file: File): Promise<string | null> {
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await uploadImage(fd);
+      if (res.ok) return res.url;
+      alert(res.error);
+      return null;
+    } catch {
+      alert("فشل رفع الصورة");
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  }
 
   const bottlesUnique = useMemo(() => {
     const m = new Map<string, Bottle>();
@@ -956,14 +975,37 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                 </div>
               </div>
               <div className="space-y-1">
-                <Label>رابط الصورة (https)</Label>
-                <Input
-                  dir="ltr"
-                  value={bottleForm.image_url ?? ""}
-                  onChange={(e) =>
-                    setBottleForm({ ...bottleForm, image_url: e.target.value })
-                  }
-                />
+                <Label>الصورة</Label>
+                <div className="flex gap-2">
+                  <Input
+                    dir="ltr"
+                    placeholder="https://… أو ارفع صورة"
+                    className="flex-1"
+                    value={bottleForm.image_url ?? ""}
+                    onChange={(e) =>
+                      setBottleForm({ ...bottleForm, image_url: e.target.value })
+                    }
+                  />
+                  <label className={cn(
+                    "flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border border-[#C5973E]/40 bg-[#fffbf0] px-3 text-xs font-bold text-[#8F6B28] transition hover:bg-[#fff4d6]",
+                    uploading && "pointer-events-none opacity-50",
+                  )}>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="size-3.5" aria-hidden><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
+                    {uploading ? "جاري…" : "رفع"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const f = e.target.files?.[0];
+                        if (!f) return;
+                        const url = await handleUpload(f);
+                        if (url) setBottleForm({ ...bottleForm, image_url: url });
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                </div>
               </div>
               <div className="space-y-1">
                 <Label>معاينة الصورة</Label>
@@ -978,7 +1020,7 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center text-sm text-stone-400">
-                      أدخل رابط صورة لعرض المعاينة
+                      ارفع صورة أو أدخل رابط
                     </div>
                   )}
                 </div>
@@ -1083,14 +1125,37 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                 </div>
               </div>
               <div className="space-y-1">
-                <Label>رابط الصورة (https)</Label>
-                <Input
-                  dir="ltr"
-                  value={ingForm.image_url ?? ""}
-                  onChange={(e) =>
-                    setIngForm({ ...ingForm, image_url: e.target.value })
-                  }
-                />
+                <Label>الصورة</Label>
+                <div className="flex gap-2">
+                  <Input
+                    dir="ltr"
+                    placeholder="https://… أو ارفع صورة"
+                    className="flex-1"
+                    value={ingForm.image_url ?? ""}
+                    onChange={(e) =>
+                      setIngForm({ ...ingForm, image_url: e.target.value })
+                    }
+                  />
+                  <label className={cn(
+                    "flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border border-[#C5973E]/40 bg-[#fffbf0] px-3 text-xs font-bold text-[#8F6B28] transition hover:bg-[#fff4d6]",
+                    uploading && "pointer-events-none opacity-50",
+                  )}>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="size-3.5" aria-hidden><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
+                    {uploading ? "جاري…" : "رفع"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const f = e.target.files?.[0];
+                        if (!f) return;
+                        const url = await handleUpload(f);
+                        if (url) setIngForm({ ...ingForm, image_url: url });
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                </div>
               </div>
               <div className="space-y-1">
                 <Label>معاينة الصورة</Label>
@@ -1105,7 +1170,7 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center text-sm text-stone-400">
-                      أدخل رابط صورة لعرض المعاينة
+                      ارفع صورة أو أدخل رابط
                     </div>
                   )}
                 </div>
@@ -1327,19 +1392,84 @@ export function AdminDashboard({ hasSupabase }: { hasSupabase: boolean }) {
                 </select>
               </div>
               <div className="space-y-1">
-                <Label>روابط الصور (سطر لكل رابط https)</Label>
-                <textarea
-                  dir="ltr"
-                  className="flex min-h-[80px] w-full resize-y rounded-xl border border-stone-200 bg-white px-3 py-2 font-mono text-xs text-stone-800 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C5973E]/40"
-                  placeholder="https://…"
-                  value={storeForm.image_urls_raw ?? ""}
-                  onChange={(e) =>
-                    setStoreForm({
-                      ...storeForm,
-                      image_urls_raw: e.target.value,
-                    })
-                  }
-                />
+                <Label>الصور</Label>
+                <div className="space-y-2">
+                  {(storeForm.image_urls_raw ?? "")
+                    .split("\n")
+                    .filter((u) => u.trim())
+                    .map((url, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <div className="relative size-12 shrink-0 overflow-hidden rounded-lg border border-stone-200 bg-stone-100">
+                          <Image src={url.trim()} alt="" fill className="object-cover" unoptimized />
+                        </div>
+                        <Input
+                          dir="ltr"
+                          className="flex-1 text-xs"
+                          value={url}
+                          onChange={(e) => {
+                            const lines = (storeForm.image_urls_raw ?? "").split("\n");
+                            lines[idx] = e.target.value;
+                            setStoreForm({ ...storeForm, image_urls_raw: lines.join("\n") });
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="size-9 shrink-0 border-red-200 p-0 text-red-500 hover:bg-red-50 hover:text-red-700"
+                          onClick={() => {
+                            const lines = (storeForm.image_urls_raw ?? "").split("\n");
+                            lines.splice(idx, 1);
+                            setStoreForm({ ...storeForm, image_urls_raw: lines.join("\n") });
+                          }}
+                        >
+                          ✕
+                        </Button>
+                      </div>
+                    ))}
+                  <div className="flex gap-2">
+                    <label className={cn(
+                      "flex h-9 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-dashed border-[#C5973E]/40 bg-[#fffbf0] text-xs font-bold text-[#8F6B28] transition hover:bg-[#fff4d6]",
+                      uploading && "pointer-events-none opacity-50",
+                    )}>
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="size-3.5" aria-hidden><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
+                      {uploading ? "جاري الرفع…" : "رفع صورة"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const f = e.target.files?.[0];
+                          if (!f) return;
+                          const url = await handleUpload(f);
+                          if (url) {
+                            const current = (storeForm.image_urls_raw ?? "").trim();
+                            setStoreForm({
+                              ...storeForm,
+                              image_urls_raw: current ? `${current}\n${url}` : url,
+                            });
+                          }
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-9 shrink-0 border-dashed text-xs"
+                      onClick={() => {
+                        const current = (storeForm.image_urls_raw ?? "").trim();
+                        setStoreForm({
+                          ...storeForm,
+                          image_urls_raw: current ? `${current}\nhttps://` : "https://",
+                        });
+                      }}
+                    >
+                      + رابط يدوي
+                    </Button>
+                  </div>
+                </div>
               </div>
               <label className="flex items-center gap-2 text-sm text-stone-700">
                 <input
