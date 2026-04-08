@@ -25,17 +25,49 @@ export const OIL_PRESET_PERCENT_EDT = 10;
 export const OIL_PRESET_PERCENT_EDP = 20;
 export const OIL_PRESET_PERCENT_EXTRAIT = 30;
 
-/** يحسب مل العطر من نسبة مئوية لسعة القارورة، مع تقريب لخطوة 5 مل والحد الأقصى */
-export function oilMlFromBottlePercent(
-  bottle: Bottle | null,
-  percentOfCapacity: number
-): number {
+/** تقريب لأعلى بخطوات 5 مل (لا يلفّ 10% و 20% لنفس القيمة كما يفعل التقريب العادي) */
+function snapCeilOilMl(raw: number, cap: number): number {
+  if (raw <= 0) return OIL_GRAMS_MIN;
+  const stepped = Math.ceil(raw / OIL_ML_STEP) * OIL_ML_STEP;
+  return Math.min(cap, Math.max(OIL_GRAMS_MIN, stepped));
+}
+
+/**
+ * ثلاث كميات حسب النسب — متزايدة دائماً عندما تسمع السعة (مثلاً 30 مل → 5، 10، 15 مل).
+ */
+export function oilPresetsForBottle(bottle: Bottle | null): {
+  edt: number;
+  edp: number;
+  extrait: number;
+} {
   const cap = maxOilMlForBottle(bottle);
   const capMl = bottle?.capacity_ml ?? 0;
-  if (capMl <= 0) return Math.min(cap, OIL_GRAMS_MIN);
-  const raw = capMl * (percentOfCapacity / 100);
-  const snapped = Math.round(raw / OIL_ML_STEP) * OIL_ML_STEP;
-  return Math.min(cap, Math.max(OIL_GRAMS_MIN, snapped));
+  if (capMl <= 0) {
+    return {
+      edt: OIL_GRAMS_MIN,
+      edp: OIL_GRAMS_MIN,
+      extrait: OIL_GRAMS_MIN,
+    };
+  }
+
+  const edt = snapCeilOilMl(
+    (capMl * OIL_PRESET_PERCENT_EDT) / 100,
+    cap,
+  );
+  let edp = snapCeilOilMl(
+    (capMl * OIL_PRESET_PERCENT_EDP) / 100,
+    cap,
+  );
+  let extrait = snapCeilOilMl(
+    (capMl * OIL_PRESET_PERCENT_EXTRAIT) / 100,
+    cap,
+  );
+
+  if (edp <= edt) edp = Math.min(cap, edt + OIL_ML_STEP);
+  if (extrait <= edp) extrait = Math.min(cap, edp + OIL_ML_STEP);
+  if (extrait <= edp) extrait = cap;
+
+  return { edt, edp, extrait };
 }
 
 function snapOilMl(ml: number, cap: number): number {

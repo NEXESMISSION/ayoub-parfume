@@ -17,22 +17,16 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
-  Minus,
-  Plus,
   Search,
 } from "lucide-react";
 import {
-  OIL_GRAMS_MIN,
-  OIL_ML_MIN,
-  OIL_ML_STEP,
   OIL_PRESET_PERCENT_EDP,
   OIL_PRESET_PERCENT_EDT,
   OIL_PRESET_PERCENT_EXTRAIT,
   maxOilMlForBottle,
-  oilMlFromBottlePercent,
+  oilPresetsForBottle,
   usePerfumeStore,
 } from "@/store/perfume-store";
-import { OilSyringeVisual } from "@/components/builder/oil-syringe-visual";
 import { buildIngredientMap, computeTotals } from "@/lib/pricing";
 import { applyShareToBottle, decodeShare } from "@/lib/share-state";
 import { createOrder } from "@/app/actions/orders";
@@ -44,7 +38,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
 import {
   Dialog,
   DialogContent,
@@ -382,19 +375,7 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
 
   const mainScrollRef = useRef<HTMLDivElement>(null);
   const oilCapMl = useMemo(() => maxOilMlForBottle(bottle), [bottle]);
-  const oilPresets = useMemo(() => {
-    if (!bottle)
-      return {
-        edt: OIL_GRAMS_MIN,
-        edp: OIL_GRAMS_MIN,
-        extrait: OIL_GRAMS_MIN,
-      };
-    return {
-      edt: oilMlFromBottlePercent(bottle, OIL_PRESET_PERCENT_EDT),
-      edp: oilMlFromBottlePercent(bottle, OIL_PRESET_PERCENT_EDP),
-      extrait: oilMlFromBottlePercent(bottle, OIL_PRESET_PERCENT_EXTRAIT),
-    };
-  }, [bottle]);
+  const oilPresets = useMemo(() => oilPresetsForBottle(bottle), [bottle]);
 
   useEffect(() => {
     const el = mainScrollRef.current;
@@ -427,6 +408,10 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
   const totals = useMemo(
     () => computeTotals(bottle, recipe, map),
     [bottle, recipe, map],
+  );
+  const scentPlusFillTotal = useMemo(
+    () => totals.ingredientsTotal + totals.alcoholPrice,
+    [totals.ingredientsTotal, totals.alcoholPrice],
   );
 
   const selected = recipe[0];
@@ -705,10 +690,9 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
                 >
                   <div className={cn("flex flex-col gap-3 p-3 sm:p-4", panel)}>
                     <p className="text-center text-[11px] leading-relaxed text-zinc-500">
-                      اضبط كمية العطر بخطوات {OIL_ML_STEP} مل. الحد الأعلى يطابق
-                      سعة القارورة (
+                      اختر تركيز العطر المناسب؛ الكمية تُحدَّد تلقائياً حسب سعة القارورة (
                       <span dir="ltr" className="font-semibold text-zinc-700">
-                        {oilCapMl} مل
+                        حتى {oilCapMl} مل
                       </span>
                       ).
                     </p>
@@ -760,30 +744,14 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
                       </div>
                     </div>
 
-                    <div className="flex flex-col items-center gap-1 py-0.5">
-                      <OilSyringeVisual
-                        compact
-                        valueMl={selected.grams}
-                        minMl={OIL_ML_MIN}
-                        maxMl={oilCapMl}
-                      />
-                    </div>
-
                     <div className="rounded-xl bg-zinc-100/80 px-3 py-2.5">
-                      <div className="mb-3 text-center">
-                        <p className="text-[10px] font-bold text-zinc-500">
-                          الكمية الحالية
-                        </p>
-                        <p
-                          className="mt-0.5 text-[1.75rem] font-black leading-none tabular-nums tracking-tight text-zinc-900 sm:text-3xl"
-                          dir="ltr"
-                        >
+                      <p className="mb-3 text-center text-sm font-semibold text-zinc-800">
+                        الكمية الحالية:{" "}
+                        <span dir="ltr" className="font-black tabular-nums text-zinc-900">
                           {selected.grams.toFixed(0)}
-                          <span className="ms-1.5 text-base font-bold text-zinc-500 sm:text-lg">
-                            مل
-                          </span>
-                        </p>
-                      </div>
+                        </span>{" "}
+                        <span className="font-bold text-zinc-500">مل</span>
+                      </p>
                       {bottle ? (
                         <div className="mb-3 space-y-2">
                           <p className="text-center text-[10px] font-bold text-zinc-600">
@@ -873,114 +841,10 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
                             </Button>
                           </div>
                           <p className="text-center text-[9px] leading-snug text-zinc-400">
-                            يمكنك أيضاً ضبط الكمية يدوياً بالشريط أدناه (خطوات{" "}
-                            {OIL_ML_STEP} مل).
+                            يكمّل الباقي من سعة القارورة بالتعبئة المناسبة بعد اختيارك.
                           </p>
                         </div>
                       ) : null}
-                      <div className="mb-1.5 flex justify-between text-[10px] font-medium text-zinc-500">
-                        <span dir="ltr">{OIL_ML_MIN} مل</span>
-                        <span dir="ltr">{oilCapMl} مل</span>
-                      </div>
-                      <div dir="ltr" className="flex items-center gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          aria-label={`نقص ${OIL_ML_STEP} مل`}
-                          className="size-9 shrink-0 rounded-lg border-zinc-200 bg-white"
-                          onClick={() =>
-                            setGrams(
-                              Math.max(
-                                OIL_GRAMS_MIN,
-                                selected.grams - OIL_ML_STEP,
-                              ),
-                            )
-                          }
-                        >
-                          <Minus className="size-4" strokeWidth={2.5} />
-                        </Button>
-                        <Slider
-                          value={[selected.grams]}
-                          min={OIL_GRAMS_MIN}
-                          max={oilCapMl}
-                          step={OIL_ML_STEP}
-                          size="touch"
-                          onValueChange={(v) =>
-                            setGrams(v[0] ?? selected.grams)
-                          }
-                          className="min-w-0 flex-1"
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          aria-label={`زِد ${OIL_ML_STEP} مل`}
-                          className="size-9 shrink-0 rounded-lg border-zinc-200 bg-white"
-                          onClick={() =>
-                            setGrams(
-                              Math.min(
-                                oilCapMl,
-                                selected.grams + OIL_ML_STEP,
-                              ),
-                            )
-                          }
-                        >
-                          <Plus className="size-4" strokeWidth={2.5} />
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="rounded-xl border border-zinc-100 bg-gradient-to-b from-white to-zinc-50/90 px-3 py-2.5 text-start shadow-sm">
-                      <dl className="space-y-1.5 text-[11px] sm:space-y-2">
-                        <div className="flex justify-between gap-2 border-b border-zinc-100 pb-1.5">
-                          <dt className="text-zinc-500">كمية العطر</dt>
-                          <dd
-                            dir="ltr"
-                            className="font-bold tabular-nums text-zinc-900"
-                          >
-                            {selected.grams.toFixed(0)} مل
-                          </dd>
-                        </div>
-                        <div className="flex justify-between gap-2 border-b border-zinc-100 pb-1.5">
-                          <dt className="text-zinc-500">
-                            المتبقي في القارورة
-                          </dt>
-                          <dd
-                            dir="ltr"
-                            className="font-bold tabular-nums text-sky-800"
-                          >
-                            {Math.max(0, totals.remainingMl).toFixed(1)} مل
-                          </dd>
-                        </div>
-                        <div className="flex justify-between gap-2 border-b border-zinc-100 pb-1.5">
-                          <dt className="text-zinc-500">تكلفة الكحول</dt>
-                          <dd
-                            dir="ltr"
-                            className="font-bold tabular-nums text-sky-800"
-                          >
-                            {totals.alcoholPrice.toFixed(2)} د.ت
-                          </dd>
-                        </div>
-                        <div className="flex justify-between gap-2">
-                          <dt className="text-zinc-500">تكلفة العطر</dt>
-                          <dd
-                            dir="ltr"
-                            className="font-bold tabular-nums text-[#8F6B28]"
-                          >
-                            {(
-                              selectedIng.price_per_gram * selected.grams
-                            ).toFixed(2)}{" "}
-                            د.ت
-                          </dd>
-                        </div>
-                      </dl>
-                      <p className="mt-2 border-t border-dashed border-zinc-200 pt-2 text-center text-[10px] leading-relaxed text-zinc-400">
-                        <span className="text-zinc-500">سعر المل (العطر)</span>{" "}
-                        <span dir="ltr" className="font-semibold text-zinc-700">
-                          {selectedIng.price_per_gram.toFixed(2)} د.ت
-                        </span>
-                      </p>
                     </div>
 
                     {totals.overCapacity && (
@@ -994,7 +858,7 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
               )}
 
               {/* Step 3 — Phone & Confirm */}
-              {step === 3 && (
+              {step === 3 && selected && selectedIng && (
                 <motion.section
                   key="s3"
                   variants={slideVariants}
@@ -1005,86 +869,125 @@ export function ScentBuilder({ bottles, ingredients }: Props) {
                   style={{ height: "auto", minHeight: "min-content" }}
                   className="block w-full min-h-0 min-w-0 space-y-3 pb-24"
                 >
-                  <div
-                    className={cn("mx-auto w-full max-w-sm space-y-3 p-4", panel)}
-                  >
-                    <div className="rounded-xl border border-zinc-200/90 bg-gradient-to-b from-zinc-50 to-white px-3 py-3 text-center">
-                      <p className="text-xl font-black text-zinc-900 sm:text-2xl">
+                  <div className="mx-auto flex w-full max-w-md flex-col gap-4 px-3 py-2 sm:px-4">
+                    <div className="rounded-2xl border border-[#C5973E]/20 bg-gradient-to-b from-[#fdf9f1] via-white to-white px-4 py-5 text-center shadow-[0_8px_30px_-12px_rgba(197,151,62,0.25)]">
+                      <p className="text-xl font-black tracking-tight text-zinc-900 sm:text-2xl">
                         أرسل طلبك
                       </p>
-                      <p className="mt-1 text-[11px] leading-snug text-zinc-500">
-                        راجع الملخص ثم أدخل عنوان التوصيل ورقم الهاتف لنتواصل معك. سعر
-                        التوصيل الثابت{" "}
-                        <span dir="ltr" className="font-semibold text-zinc-700">
+                      <p className="mx-auto mt-2 max-w-[22rem] text-[11px] leading-relaxed text-zinc-600">
+                        راجع اختيارك أدناه ثم أدخل عنوان التوصيل والهاتف. التوصيل{" "}
+                        <span dir="ltr" className="font-semibold text-zinc-800">
                           {totals.deliveryPrice.toFixed(0)} د.ت
                         </span>{" "}
-                        يُضاف تلقائياً للمجموع.
+                        يُضاف للإجمالي.
                       </p>
                     </div>
-                    <div>
-                      <p className="text-xs font-bold text-zinc-900">
-                        ملخص الطلب
+
+                    <div
+                      className={cn(
+                        "overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-sm",
+                        panel,
+                      )}
+                    >
+                      <p className="border-b border-zinc-100 bg-zinc-50/80 px-4 py-2.5 text-center text-xs font-bold text-zinc-800">
+                        اختيارك
                       </p>
-                      <div className="mt-2 space-y-1.5 text-xs">
-                        <div className="flex justify-between">
-                          <span className="text-zinc-500">المكوّن</span>
-                          <span className="truncate text-end font-medium text-zinc-900">
-                            {selectedIng?.name}
+                      <div className="flex flex-wrap justify-center gap-6 px-4 py-5">
+                        {bottle ? (
+                          <div className="flex w-[7.25rem] shrink-0 flex-col items-center gap-2 sm:w-[8rem]">
+                            <div className="relative aspect-square w-full overflow-hidden rounded-2xl border-2 border-zinc-200/90 bg-zinc-50 shadow-inner">
+                              <BottleImage
+                                src={bottle.image_url}
+                                alt={bottle.name ?? "قارورة"}
+                                className="rounded-xl"
+                              />
+                            </div>
+                            <p className="line-clamp-2 text-center text-[11px] font-bold leading-tight text-zinc-900">
+                              سعة {bottle.capacity_ml} مل
+                            </p>
+                          </div>
+                        ) : null}
+                        <div className="flex w-[7.25rem] shrink-0 flex-col items-center gap-2 sm:w-[8rem]">
+                          <div className="relative aspect-square w-full overflow-hidden rounded-2xl border-2 border-[#C5973E]/35 bg-zinc-50 shadow-sm">
+                            {selectedIng.image_url ? (
+                              <Image
+                                src={selectedIng.image_url}
+                                alt={selectedIng.name}
+                                fill
+                                className="object-cover"
+                                sizes="128px"
+                                unoptimized
+                              />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center text-2xl text-zinc-300">
+                                ✧
+                              </div>
+                            )}
+                          </div>
+                          <p className="line-clamp-3 text-center text-[11px] font-bold leading-snug text-zinc-900">
+                            {selectedIng.name}
+                          </p>
+                          <p
+                            dir="ltr"
+                            className="text-center text-[10px] font-semibold tabular-nums text-[#8F6B28]"
+                          >
+                            كمية العطر {selected.grams.toFixed(0)} مل
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-0 border-t border-zinc-100 bg-gradient-to-b from-white to-zinc-50/40 px-4 pb-4 pt-3">
+                        {bottle ? (
+                          <div className="flex items-center justify-between gap-3 text-sm">
+                            <span className="text-zinc-600">القارورة</span>
+                            <span
+                              dir="ltr"
+                              className="font-semibold tabular-nums text-zinc-900"
+                            >
+                              {totals.bottlePrice.toFixed(2)} د.ت
+                            </span>
+                          </div>
+                        ) : null}
+                        <div className="mt-2 flex items-center justify-between gap-3 text-sm">
+                          <span className="text-zinc-600">
+                            العطر والتعبئة{" "}
+                            <span className="text-[10px] text-zinc-400">
+                              (مجموع)
+                            </span>
+                          </span>
+                          <span
+                            dir="ltr"
+                            className="font-semibold tabular-nums text-[#8F6B28]"
+                          >
+                            {scentPlusFillTotal.toFixed(2)} د.ت
                           </span>
                         </div>
-                        <div className="flex justify-between text-zinc-600">
-                          <span>العطر (مل)</span>
-                          <span dir="ltr" className="tabular-nums">
-                            {selected?.grams.toFixed(0)} مل
-                          </span>
-                        </div>
-                        {bottle && (
-                          <>
-                            <div className="flex justify-between text-zinc-600">
-                              <span>الكحول المعطّر (مل)</span>
-                              <span dir="ltr" className="tabular-nums">
-                                {Math.max(0, totals.remainingMl).toFixed(1)} مل
-                              </span>
-                            </div>
-                            <div className="flex justify-between text-zinc-600">
-                              <span>تكلفة الكحول</span>
-                              <span dir="ltr" className="tabular-nums">
-                                {totals.alcoholPrice.toFixed(2)} د.ت
-                              </span>
-                            </div>
-                            <div className="flex justify-between text-zinc-600">
-                              <span>تكلفة العطر</span>
-                              <span dir="ltr" className="tabular-nums">
-                                {totals.ingredientsTotal.toFixed(2)} د.ت
-                              </span>
-                            </div>
-                          </>
-                        )}
-                        <div className="flex justify-between border-t border-zinc-200 pt-1.5 text-zinc-600">
-                          <span>المجموع (بدون توصيل)</span>
-                          <span dir="ltr" className="tabular-nums">
+                        <div className="my-3 h-px bg-zinc-200/90" />
+                        <div className="flex items-center justify-between text-sm text-zinc-700">
+                          <span className="font-medium">المجموع الفرعي</span>
+                          <span dir="ltr" className="font-semibold tabular-nums">
                             {totals.subtotal.toFixed(2)} د.ت
                           </span>
                         </div>
-                        <div className="flex justify-between text-zinc-600">
-                          <span>التوصيل</span>
-                          <span dir="ltr" className="tabular-nums">
+                        <div className="mt-2 flex items-center justify-between text-sm">
+                          <span className="text-zinc-600">التوصيل</span>
+                          <span dir="ltr" className="tabular-nums text-zinc-800">
                             {totals.deliveryPrice.toFixed(2)} د.ت
                           </span>
                         </div>
-                        <div className="flex justify-between border-t border-dashed border-zinc-200 pt-1.5 font-semibold text-zinc-900">
-                          <span>الإجمالي</span>
+                        <div className="mt-3 flex items-center justify-between rounded-xl bg-[#fdf8ee] px-3 py-2.5 border border-[#C5973E]/25">
+                          <span className="text-sm font-black text-zinc-900">
+                            الإجمالي
+                          </span>
                           <span
                             dir="ltr"
-                            className="tabular-nums text-[#8F6B28]"
+                            className="text-lg font-black tabular-nums text-[#8F6B28]"
                           >
                             {totals.totalPrice.toFixed(2)} د.ت
                           </span>
                         </div>
                       </div>
                     </div>
-
-                    <div className="border-t border-zinc-100" />
 
                     <div className="space-y-2">
                       <div className="text-center">

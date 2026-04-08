@@ -1,4 +1,12 @@
+import path from "path";
+import { fileURLToPath } from "url";
 import type { NextConfig } from "next";
+
+/**
+ * Force app root: a `package-lock.json` in a parent folder (e.g. user home) makes Next
+ * infer the wrong workspace root; Turbopack then corrupts `.next` manifests after a while (ENOENT).
+ */
+const PROJECT_ROOT = path.dirname(fileURLToPath(import.meta.url));
 
 /** Prefer explicit Supabase host — wildcards like *.supabase.co are unreliable across Next/Vercel versions. */
 function supabaseImageHost():
@@ -33,6 +41,10 @@ const sb = supabaseImageHost();
 if (sb) remotePatterns.push(sb);
 
 const nextConfig: NextConfig = {
+  outputFileTracingRoot: PROJECT_ROOT,
+  turbopack: {
+    root: PROJECT_ROOT,
+  },
   images: {
     remotePatterns,
   },
